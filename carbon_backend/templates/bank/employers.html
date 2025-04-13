@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Manage Employers</h1>
+        <p class="mt-1 text-sm text-gray-600">Review and manage employer accounts.</p>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul class="divide-y divide-gray-200">
+            {% for employer in employers %}
+            <li>
+                <div class="px-4 py-4 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-gray-900">{{ employer.company_name }}</p>
+                                <p class="text-sm text-gray-500">{{ employer.user.email }}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ employer.user.is_approved|yesno:'bg-green-100 text-green-800,bg-yellow-100 text-yellow-800' }}">
+                                {{ employer.user.is_approved|yesno:'Approved,Pending Approval' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mt-2 sm:flex sm:justify-between">
+                        <div class="sm:flex">
+                            <p class="flex items-center text-sm text-gray-500">
+                                Industry: {{ employer.industry }}
+                            </p>
+                            <p class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
+                                Registration: {{ employer.registration_number }}
+                            </p>
+                        </div>
+                        <div class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                            <p>
+                                Joined: {{ employer.created_at|date:"M d, Y" }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% empty %}
+            <li class="px-4 py-5 sm:px-6">
+                <p class="text-sm text-gray-500">No employers found.</p>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %} 

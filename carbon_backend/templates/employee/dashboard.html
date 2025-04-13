@@ -1,0 +1,492 @@
+{% extends 'base.html' %}
+
+{% block title %}Employee Dashboard - Carbon Credits Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .stat-card {
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .quick-actions-card {
+        border-radius: 16px;
+        background-color: white;
+        box-shadow: 0px 6px 24px rgba(0, 0, 0, 0.08);
+    }
+    
+    .action-btn {
+        transition: all 0.3s ease;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    
+    .kpi-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .kpi-card .trend-indicator {
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .trend-up {
+        color: #4CAF50;
+    }
+    
+    .trend-down {
+        color: #FF6B6B;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container px-4 py-6">
+    <div class="relative mb-8">
+        <div class="bg-pattern"></div>
+        <div class="relative z-10">
+            <h1 class="section-headline text-3xl md:text-4xl font-bold mb-6">Employee Dashboard</h1>
+            <p class="text-gray-600 max-w-3xl">
+                Welcome, {{ user.first_name }}! Track your sustainable commutes and earn carbon credits.
+            </p>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="mb-10">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6">My Carbon Impact</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="modern-card p-6 stat-card">
+                <div class="flex items-start">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-500">Total Credits</h3>
+                        <p class="text-3xl font-bold text-gray-800">{{ total_credits|floatformat:2 }}</p>
+                        <div class="text-sm text-gray-500 mt-1">
+                            <span class="text-green-600 font-medium">+{{ recent_credits|floatformat:2 }}</span> in last 7 days
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modern-card p-6 stat-card">
+                <div class="flex items-start">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-500">Total Trips</h3>
+                        <p class="text-3xl font-bold text-gray-800">{{ total_trips }}</p>
+                        <div class="text-sm text-gray-500 mt-1">
+                            <span class="text-green-600 font-medium">{{ total_distance|floatformat:1 }}</span> km traveled
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modern-card p-6 stat-card">
+                <div class="flex items-start">
+                    <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-500">CO₂ Saved</h3>
+                        <p class="text-3xl font-bold text-gray-800">{{ co2_saved|floatformat:1 }} kg</p>
+                        <div class="text-sm text-gray-500 mt-1">
+                            <span class="trend-indicator trend-up">↑ Equivalent to {{ tree_equivalent }} trees</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modern-card p-6 stat-card">
+                <div class="flex items-start">
+                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-gray-500">Streak</h3>
+                        <p class="text-3xl font-bold text-gray-800">{{ current_streak }} days</p>
+                        <div class="text-sm text-gray-500 mt-1">
+                            Best: <span class="text-green-600 font-medium">{{ best_streak }}</span> days
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trip Charts & Quick Actions -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+        <!-- Charts Section -->
+        <div class="lg:col-span-2">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">My Activity</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="modern-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-700">Credits Earned</h3>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-xs font-medium bg-gray-100 rounded-md hover:bg-gray-200 period-selector active" data-period="weekly">Weekly</button>
+                            <button class="px-3 py-1 text-xs font-medium bg-gray-100 rounded-md hover:bg-gray-200 period-selector" data-period="monthly">Monthly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="creditsEarnedChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="modern-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-700">Transport Modes</h3>
+                        <button class="p-1 rounded-full bg-gray-100 hover:bg-gray-200 refresh-btn" title="Refresh data">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="transportModesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">Quick Actions</h2>
+            <div class="quick-actions-card p-6">
+                <div class="space-y-4">
+                    <a href="{% url 'employee_trip_log' %}" class="flex items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 action-btn">
+                        <div class="p-2 rounded-full bg-green-100 text-green-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-lg font-medium text-gray-900">Log New Trip</p>
+                            <span class="text-sm text-gray-500">Record your sustainable commute</span>
+                        </div>
+                    </a>
+                    
+                    <a href="{% url 'employee_trips' %}" class="flex items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 action-btn">
+                        <div class="p-2 rounded-full bg-blue-100 text-blue-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-lg font-medium text-gray-900">View All Trips</p>
+                            <span class="text-sm text-gray-500">See your trip history and status</span>
+                        </div>
+                    </a>
+                    
+                    <a href="#" class="flex items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 action-btn">
+                        <div class="p-2 rounded-full bg-purple-100 text-purple-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-lg font-medium text-gray-900">Carbon Credits</p>
+                            <span class="text-sm text-gray-500">View your earned credits</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Trips -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Recent Trips</h2>
+        <div class="modern-card overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-medium text-gray-700">Your Latest Activity</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Location</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Location</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transport Mode</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distance</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credits</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for trip in recent_trips %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ trip.start_time|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ trip.start_location.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ trip.end_location.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <span class="p-1.5 rounded-full 
+                                    {% if trip.transport_mode == 'bicycle' %}
+                                    bg-green-100 text-green-700
+                                    {% elif trip.transport_mode == 'walking' %}
+                                    bg-blue-100 text-blue-700
+                                    {% elif trip.transport_mode == 'public_transport' %}
+                                    bg-purple-100 text-purple-700
+                                    {% elif trip.transport_mode == 'carpool' %}
+                                    bg-yellow-100 text-yellow-700
+                                    {% else %}
+                                    bg-gray-100 text-gray-700
+                                    {% endif %}
+                                    mr-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            {% if trip.transport_mode == 'bicycle' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+                                            {% elif trip.transport_mode == 'walking' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                            {% elif trip.transport_mode == 'public_transport' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            {% elif trip.transport_mode == 'carpool' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                            {% else %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                            {% endif %}
+                                        </svg>
+                                    </span>
+                                    <span class="text-sm text-gray-900">{{ trip.get_transport_mode_display }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ trip.distance|floatformat:1 }} km
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ trip.carbon_credits|floatformat:2 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if trip.is_verified %}
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    Verified
+                                </span>
+                                {% elif trip.end_time %}
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    Pending
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    In Progress
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                No recent trips found. <a href="{% url 'employee_trip_log' %}" class="text-green-600 hover:text-green-800">Log your first trip!</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if recent_trips %}
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <a href="{% url 'employee_trips' %}" class="text-sm font-medium text-green-600 hover:text-green-500">
+                    View all trips <span aria-hidden="true">&rarr;</span>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize charts
+        initializeCharts();
+        
+        // Add event listeners for period selectors
+        document.querySelectorAll('.period-selector').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.period-selector').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                updateCharts(this.dataset.period);
+            });
+        });
+        
+        // Add event listener for refresh button
+        document.querySelector('.refresh-btn').addEventListener('click', function() {
+            updateCharts(document.querySelector('.period-selector.active').dataset.period);
+        });
+        
+        function initializeCharts() {
+            // Credits Earned Chart
+            const creditsCtx = document.getElementById('creditsEarnedChart').getContext('2d');
+            window.creditsChart = new Chart(creditsCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Credits Earned',
+                        data: [2.5, 3.8, 0, 4.2, 2.1, 1.5, 3.2],
+                        backgroundColor: 'rgba(43, 147, 72, 0.2)',
+                        borderColor: '#2B9348',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#2B9348',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            padding: 10,
+                            cornerRadius: 6,
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            // Transport Modes Chart
+            const transportCtx = document.getElementById('transportModesChart').getContext('2d');
+            window.transportChart = new Chart(transportCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Bicycle', 'Walking', 'Public Transport', 'Carpool', 'Other'],
+                    datasets: [{
+                        data: [45, 25, 15, 10, 5],
+                        backgroundColor: [
+                            '#55A630', // green
+                            '#1E88E5', // blue
+                            '#70A9A1', // teal
+                            '#F9DC5C', // yellow
+                            '#9DACFF'  // lavender
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            padding: 10,
+                            cornerRadius: 6,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.formattedValue;
+                                    return `${label}: ${value}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateCharts(period) {
+            // Simple mock data for different periods
+            let creditsData;
+            let labels;
+            
+            if (period === 'weekly') {
+                labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                creditsData = [2.5, 3.8, 0, 4.2, 2.1, 1.5, 3.2];
+            } else if (period === 'monthly') {
+                labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+                creditsData = [12.5, 14.2, 10.8, 8.7];
+            }
+            
+            // Update credits chart
+            window.creditsChart.data.labels = labels;
+            window.creditsChart.data.datasets[0].data = creditsData;
+            window.creditsChart.update();
+            
+            // Also update transport chart with random data just for demo purposes
+            const transportData = [
+                Math.floor(Math.random() * 30) + 20,
+                Math.floor(Math.random() * 20) + 15,
+                Math.floor(Math.random() * 20) + 10,
+                Math.floor(Math.random() * 15) + 10,
+                Math.floor(Math.random() * 10) + 5
+            ];
+            
+            window.transportChart.data.datasets[0].data = transportData;
+            window.transportChart.update();
+        }
+    });
+</script>
+{% endblock %} 

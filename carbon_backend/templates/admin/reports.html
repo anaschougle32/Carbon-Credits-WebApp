@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin Reports | Carbon Credits{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+  <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Reports & Analytics</h1>
+    
+    <!-- Report Filters -->
+    <div class="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6 mb-6">
+      <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+        <div class="sm:col-span-2">
+          <label for="report-type" class="block text-sm font-medium text-gray-700">Report Type</label>
+          <select id="report-type" name="report_type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+            <option value="summary" {% if report_type == 'summary' %}selected{% endif %}>Summary Report</option>
+            <option value="trips" {% if report_type == 'trips' %}selected{% endif %}>Trip Analytics</option>
+            <option value="credits" {% if report_type == 'credits' %}selected{% endif %}>Credit Usage</option>
+            <option value="employers" {% if report_type == 'employers' %}selected{% endif %}>Employer Comparison</option>
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label for="date-range" class="block text-sm font-medium text-gray-700">Date Range</label>
+          <select id="date-range" name="date_range" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+            <option value="90d">Last 90 Days</option>
+            <option value="ytd">Year to Date</option>
+            <option value="all">All Time</option>
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label for="format" class="block text-sm font-medium text-gray-700">Export Format</label>
+          <select id="format" name="format" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+            <option value="web">Web View</option>
+            <option value="csv">CSV Download</option>
+            <option value="pdf">PDF Download</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-5 flex justify-end">
+        <button 
+          type="button" 
+          class="btn btn-primary"
+          hx-get="{% url 'admin_reports' %}"
+          hx-target="#report-content"
+          hx-vals='{"report_type": "#report-type", "date_range": "#date-range"}'
+          hx-indicator="#loading-indicator"
+        >
+          Generate Report
+        </button>
+      </div>
+    </div>
+    
+    <!-- Loading Indicator -->
+    <div id="loading-indicator" class="htmx-indicator flex justify-center my-8">
+      <svg class="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+    
+    <!-- Report Content -->
+    <div id="report-content">
+      {% if report_type == 'summary' %}
+        <!-- Summary Report -->
+        <div class="bg-white shadow sm:rounded-lg mb-6">
+          <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">System Summary</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Overview of platform usage and statistics.</p>
+          </div>
+          
+          <!-- Stats Cards -->
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 p-6">
+            <div class="bg-gray-50 overflow-hidden shadow-sm rounded-lg">
+              <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Users</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ total_users|default:"0" }}</dd>
+              </div>
+            </div>
+            <div class="bg-gray-50 overflow-hidden shadow-sm rounded-lg">
+              <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Trips</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ total_trips|default:"0" }}</dd>
+              </div>
+            </div>
+            <div class="bg-gray-50 overflow-hidden shadow-sm rounded-lg">
+              <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Carbon Credits</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ total_credits|default:"0" }}</dd>
+              </div>
+            </div>
+            <div class="bg-gray-50 overflow-hidden shadow-sm rounded-lg">
+              <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Total Carbon Saved (kg)</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ total_carbon_saved|default:"0" }}</dd>
+              </div>
+            </div>
+            <div class="bg-gray-50 overflow-hidden shadow-sm rounded-lg">
+              <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Average Trips per User</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ avg_trips_per_user|default:"0" }}</dd>
+              </div>
+            </div>
+            <div class="bg-gray-50 overflow-hidden shadow-sm rounded-lg">
+              <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Redeemed Credits</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ redeemed_credits|default:"0" }}</dd>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Charts Placeholder -->
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+              <h3 class="text-lg leading-6 font-medium text-gray-900">Trips by Transport Mode</h3>
+            </div>
+            <div class="p-6" style="height: 300px;">
+              <!-- Chart would go here -->
+              <div class="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
+                <p class="text-gray-500 text-sm">Chart will be rendered here</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+              <h3 class="text-lg leading-6 font-medium text-gray-900">Carbon Credits Monthly Trend</h3>
+            </div>
+            <div class="p-6" style="height: 300px;">
+              <!-- Chart would go here -->
+              <div class="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
+                <p class="text-gray-500 text-sm">Chart will be rendered here</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% elif report_type == 'trips' %}
+        <!-- Trip Analytics -->
+        <div class="bg-white shadow sm:rounded-lg mb-6">
+          <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Trip Analytics</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Detailed analysis of commute trips.</p>
+          </div>
+          
+          <div class="p-6">
+            <p class="text-gray-500 text-sm">Trip analytics content will be shown here.</p>
+          </div>
+        </div>
+      {% elif report_type == 'credits' %}
+        <!-- Credit Usage -->
+        <div class="bg-white shadow sm:rounded-lg mb-6">
+          <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Credit Usage</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Analysis of carbon credit earning and usage.</p>
+          </div>
+          
+          <div class="p-6">
+            <p class="text-gray-500 text-sm">Credit usage content will be shown here.</p>
+          </div>
+        </div>
+      {% elif report_type == 'employers' %}
+        <!-- Employer Comparison -->
+        <div class="bg-white shadow sm:rounded-lg mb-6">
+          <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Employer Comparison</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Compare performance across employers.</p>
+          </div>
+          
+          <div class="p-6">
+            <p class="text-gray-500 text-sm">Employer comparison content will be shown here.</p>
+          </div>
+        </div>
+      {% else %}
+        <div class="bg-white shadow sm:rounded-lg mb-6">
+          <div class="p-6 text-center">
+            <p class="text-gray-500">Please select a report type and click Generate Report.</p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js would be added here -->
+{% endblock %} 

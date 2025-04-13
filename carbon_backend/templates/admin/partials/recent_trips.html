@@ -1,0 +1,90 @@
+{% if trips %}
+  <ul class="divide-y divide-gray-200">
+    {% for trip in trips %}
+      <li class="px-4 py-4 sm:px-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <span class="text-2xl mr-3">
+              {% if trip.transport_mode == 'car' %}🚗
+              {% elif trip.transport_mode == 'carpool' %}🚌
+              {% elif trip.transport_mode == 'public_transport' %}🚆
+              {% elif trip.transport_mode == 'bicycle' %}🚲
+              {% elif trip.transport_mode == 'walking' %}🚶
+              {% elif trip.transport_mode == 'work_from_home' %}🏠
+              {% else %}🚗{% endif %}
+            </span>
+            <p class="text-sm font-medium text-green-600 truncate">
+              {% if trip.employee.user.first_name or trip.employee.user.last_name %}
+                {{ trip.employee.user.first_name }} {{ trip.employee.user.last_name }}
+              {% else %}
+                {{ trip.employee.user.email }}
+              {% endif %}
+               - 
+              {% if trip.start_location %}{{ trip.start_location.name }}{% else %}Unknown{% endif %} 
+              to 
+              {% if trip.end_location %}{{ trip.end_location.name }}{% else %}In progress{% endif %}
+            </p>
+          </div>
+          <div class="ml-2 flex-shrink-0 flex">
+            <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+              {% if trip.verification_status == 'verified' %}bg-green-100 text-green-800
+              {% elif trip.verification_status == 'rejected' %}bg-red-100 text-red-800
+              {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+              {{ trip.verification_status|title }}
+            </p>
+          </div>
+        </div>
+        <div class="mt-2 sm:flex sm:justify-between">
+          <div class="sm:flex">
+            <p class="flex items-center text-sm text-gray-500">
+              {% for mode, display in transport_modes %}
+                {% if trip.transport_mode == mode %}{{ display }}{% endif %}
+              {% endfor %}
+              {% if trip.distance_km %} | {{ trip.distance_km }} km{% endif %}
+              {% if trip.credits_earned %} | {{ trip.credits_earned }} credits{% endif %}
+            </p>
+          </div>
+          <div class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+            <p>
+              Started: {{ trip.start_time|date:"M d, Y H:i" }}
+              {% if trip.end_time %} • Ended: {{ trip.end_time|date:"M d, Y H:i" }}{% endif %}
+            </p>
+          </div>
+        </div>
+        <div class="mt-2 flex justify-end space-x-2">
+          {% if trip.proof_image and trip.verification_status == 'pending' %}
+            <button 
+              class="inline-flex items-center px-2 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              hx-get="{% url 'trip_detail' trip.id %}"
+              hx-target="#trip-detail-modal"
+              hx-trigger="click"
+              _="on click add .flex remove .hidden from #modal-backdrop"
+            >
+              View Details
+            </button>
+            <button 
+              class="inline-flex items-center px-2 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              hx-post="{% url 'trip_verify' trip.id %}"
+              hx-vals='{"verification_status": "verified"}'
+              hx-target="closest li"
+              hx-swap="outerHTML"
+            >
+              Verify
+            </button>
+            <button 
+              class="inline-flex items-center px-2 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              hx-post="{% url 'trip_verify' trip.id %}"
+              hx-vals='{"verification_status": "rejected"}'
+              hx-target="closest li"
+              hx-swap="outerHTML"
+            >
+              Reject
+            </button>
+          {% endif %}
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="p-6 text-center text-gray-500">No recent trips found.</div>
+{% endif %} 
