@@ -155,3 +155,27 @@ class Location(models.Model):
                 self.name = f"{self.location_type.capitalize()} - {self.address[:20]}"
         
         super().save(*args, **kwargs)
+
+
+class EmployeeInvitation(models.Model):
+    """Model for tracking employee invitations sent by employers."""
+    
+    employer = models.ForeignKey(
+        EmployerProfile,
+        on_delete=models.CASCADE,
+        related_name='sent_invitations'
+    )
+    email = models.EmailField()
+    department = models.CharField(max_length=100, blank=True)
+    message = models.TextField(blank=True)
+    token = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return f"Invitation for {self.email} from {self.employer.company_name}"
+    
+    def is_valid(self):
+        """Check if the invitation is still valid."""
+        return not self.is_used and self.expires_at > timezone.now()

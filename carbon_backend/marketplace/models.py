@@ -51,19 +51,19 @@ class MarketplaceTransaction(models.Model):
     )
     
     offer = models.ForeignKey(
-        MarketOffer,
+        MarketOffer, 
         on_delete=models.CASCADE,
         related_name='transactions'
     )
     seller = models.ForeignKey(
-        EmployerProfile,
-        on_delete=models.CASCADE,
+        EmployerProfile, 
+        on_delete=models.CASCADE, 
         related_name='sold_transactions'
     )
     buyer = models.ForeignKey(
-        EmployerProfile,
-        on_delete=models.CASCADE,
-        related_name='purchased_transactions'
+        EmployerProfile, 
+        on_delete=models.CASCADE, 
+        related_name='bought_transactions'
     )
     credit_amount = models.DecimalField(max_digits=10, decimal_places=2)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
@@ -100,3 +100,66 @@ class MarketplaceTransaction(models.Model):
             self.admin_approval_required = True
             
         super().save(*args, **kwargs)
+
+
+class TransactionNotification(models.Model):
+    """Model for notifying users about transaction status changes."""
+    
+    transaction = models.ForeignKey(
+        MarketplaceTransaction,
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='transaction_notifications'
+    )
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    def __str__(self):
+        return f"Notification for {self.user.email} about transaction #{self.transaction.id}"
+
+
+# Signal handlers for transaction status changes
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=MarketplaceTransaction)
+def create_transaction_notifications(sender, instance, created, **kwargs):
+    """Create notifications when transaction status changes."""
+    if created:
+        # New transaction created
+        # Notify seller about new pending transaction
+        TransactionNotification.objects.create(
+            transaction=instance,
+            user=instance.seller.user,
+            message=f"New transaction #{instance.id}: {instance.buyer.company_name} wants to buy {instance.credit_amount} credits for ${instance.total_price}."
+        )
+        
+        # Notify bank admins about pending approval
+        bank_admins = CustomUser.objects.filter(is_bank_admin=True)
+        for admin in bank_admins:
+            TransactionNotification.objects.create(
+                transaction=instance,
+                user=admin,
+                message=f"Transaction #{instance.id} requires your approval: {instance.buyer.company_name} buying {instance.credit_amount} credits from {instance.seller.company_name}."
+            )
+    
+    elif not created and instance.status in ['completed', 'rejected', 'cancelled']:
+        # Status changed to completed, rejected or cancelled
+        # Notify buyer
+        TransactionNotification.objects.create(
+            transaction=instance,
+            user=instance.buyer.user,
+            message=f"Transaction #{instance.id} has been {instance.status}. {instance.credit_amount} credits purchase from {instance.seller.company_name} for ${instance.total_price}."
+        )
+        
+        # Notify seller
+        TransactionNotification.objects.create(
+            transaction=instance,
+            user=instance.seller.user,
+            message=f"Transaction #{instance.id} has been {instance.status}. Sale of {instance.credit_amount} credits to {instance.buyer.company_name} for ${instance.total_price}."
+        )

@@ -112,7 +112,12 @@ class TransactionListCreateView(APIView):
         # Permission already checked by IsEmployerOrAdmin
         employer = request.user.employer_profile
         
-        serializer = TransactionCreateSerializer(data=request.data)
+        # Add buyer to serializer context for validation
+        serializer = TransactionCreateSerializer(
+            data=request.data,
+            context={'buyer': employer}
+        )
+        
         if serializer.is_valid():
             offer_id = serializer.validated_data.get('offer')
             credit_amount = serializer.validated_data.get('credit_amount')
@@ -163,10 +168,11 @@ class TransactionListCreateView(APIView):
                 offer.credit_amount -= credit_amount
                 offer.total_price = offer.credit_amount * offer.price_per_credit
                 offer.save()
-            
-            serializer = TransactionSerializer(transaction)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-            
+                
+            return Response(
+                TransactionSerializer(transaction).data,
+                status=status.HTTP_201_CREATED
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

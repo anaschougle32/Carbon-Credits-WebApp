@@ -50,9 +50,9 @@ def dashboard_redirect(request):
     if request.user.is_super_admin:
         return redirect('admin_dashboard')
     elif request.user.is_bank_admin:
-        return redirect('bank_dashboard')
+        return redirect('bank:bank_dashboard')
     elif request.user.is_employer:
-        return redirect('employer_dashboard')
+        return redirect('employer:employer_dashboard')
     elif request.user.is_employee:
         return redirect('employee_dashboard')
     else:
