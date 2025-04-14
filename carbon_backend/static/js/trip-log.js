@@ -1,22 +1,133 @@
-// Google Maps and trip logging functionality
-let map, userMarker, destinationMarker, directionsService, directionsRenderer;
-let homeLocation = null;
-let officeLocation = null;
-let selectedMode = null;
-let calculatedDistance = 0;
-
-// Initialize map when the page loads
-function initMap() {
-    console.log("Initializing map...");
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM Content Loaded");
     
-    // Create map instance
-    map = new google.maps.Map(document.getElementById('trip-map'), {
+    // Setup transport mode selection
+    setupTransportOptions();
+    
+    // If Google Maps API is loaded, initialize the map
+    if (typeof google !== 'undefined' && google.maps) {
+        initMap();
+    }
+});
+
+// Set up transport option clicks
+function setupTransportOptions() {
+    const transportOptions = document.querySelectorAll('.transport-option');
+    transportOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            // Remove selected class from all options
+            transportOptions.forEach(opt => opt.classList.remove('selected'));
+            
+            // Add selected class to clicked option
+            this.classList.add('selected');
+            
+            // Update hidden input with selected transport mode
+            const transportMode = this.getAttribute('data-mode');
+            document.getElementById('transport-mode').value = transportMode;
+            console.log("Selected transport mode:", transportMode);
+            
+            // Special handling for work from home
+            if (transportMode === 'work_from_home') {
+                document.getElementById('map-section').style.display = 'none';
+                document.getElementById('distance-km').value = '0';
+                updateTripPreview(0, 0);
+            } else {
+                document.getElementById('map-section').style.display = 'block';
+                calculateRouteIfPossible();
+            }
+        });
+    });
+}
+
+// Add a temporary notification
+function addNotification(message, type = 'info') {
+    const container = document.createElement('div');
+    container.className = `p-4 rounded-lg mb-4 ${
+        type === 'success' ? 'bg-green-100 text-green-800' : 
+        type === 'error' ? 'bg-red-100 text-red-800' : 
+        'bg-blue-100 text-blue-800'
+    }`;
+    container.textContent = message;
+    
+    // Find the messages section or create one
+    let messagesSection = document.querySelector('.messages-section');
+    if (!messagesSection) {
+        messagesSection = document.createElement('div');
+        messagesSection.className = 'messages-section mb-6';
+        
+        // Insert after the header section
+        const header = document.querySelector('.relative.mb-8');
+        header.parentNode.insertBefore(messagesSection, header.nextSibling);
+    }
+    
+    // Add the notification
+    messagesSection.appendChild(container);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        container.style.opacity = '0';
+        container.style.transition = 'opacity 0.5s ease';
+        
+        setTimeout(() => {
+            if (container.parentNode) {
+                container.parentNode.removeChild(container);
+            }
+        }, 500);
+    }, 5000);
+}
+
+// Global variables for map components
+let map, startMarker, endMarker, directionsService, directionsRenderer;
+
+// Initialize Google Maps when API is loaded
+function initMap() {
+    console.log("Google Maps API loaded");
+    
+    // Hide all map loading indicators
+    document.querySelectorAll('.map-loading').forEach(loading => {
+        loading.style.display = 'none';
+    });
+    
+    // Create map
+    const mapElement = document.getElementById('trip-map');
+    if (!mapElement) {
+        console.error("Map element not found");
+        return;
+    }
+    
+    map = new google.maps.Map(mapElement, {
         zoom: 12,
-        center: { lat: 19.0760, lng: 72.8777 }, // Default location (Mumbai)
+        center: { lat: 19.0760, lng: 72.8777 }, // Default center (Mumbai)
         mapTypeControl: true,
         streetViewControl: false,
         fullscreenControl: true
     });
+    
+    // Create markers for start and end locations
+    startMarker = new google.maps.Marker({
+        map: map,
+        icon: {
+            url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+            scaledSize: new google.maps.Size(40, 40)
+        },
+        animation: google.maps.Animation.DROP,
+        title: 'Start Location'
+    });
+    
+    endMarker = new google.maps.Marker({
+        map: map,
+        icon: {
+            url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+            scaledSize: new google.maps.Size(40, 40)
+        },
+        animation: google.maps.Animation.DROP,
+        title: 'End Location'
+    });
+    
+    // Hide markers initially
+    startMarker.setMap(null);
+    endMarker.setMap(null);
     
     // Create directions service and renderer
     directionsService = new google.maps.DirectionsService();
@@ -24,192 +135,150 @@ function initMap() {
         map: map,
         suppressMarkers: true,
         polylineOptions: {
-            strokeColor: '#10B981', // Green color for the route
+            strokeColor: '#10B981',
             strokeWeight: 5,
             strokeOpacity: 0.7
         }
     });
     
-    // Initialize location markers
-    userMarker = new google.maps.Marker({
-        map: map,
-        icon: {
-            url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-            scaledSize: new google.maps.Size(40, 40)
-        },
-        animation: google.maps.Animation.DROP,
-        title: 'Your Location'
-    });
-    
-    destinationMarker = new google.maps.Marker({
-        map: map,
-        icon: {
-            url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-            scaledSize: new google.maps.Size(40, 40)
-        },
-        animation: google.maps.Animation.DROP,
-        title: 'Destination'
-    });
-    
-    // Hide markers initially
-    userMarker.setMap(null);
-    destinationMarker.setMap(null);
-    
-    // Get user's current location
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-                
-                // Set user marker
-                userMarker.setPosition(userLocation);
-                userMarker.setMap(map);
-                
-                // Center map on user location
-                map.setCenter(userLocation);
-                
-                // Store home location
-                homeLocation = userLocation;
-                
-                // Update hidden fields
-                document.getElementById('home-lat').value = userLocation.lat;
-                document.getElementById('home-lng').value = userLocation.lng;
-                
-                // Attempt to get address via reverse geocoding
-                reverseGeocode(userLocation);
-            },
-            (error) => {
-                console.error("Geolocation error:", error);
-                alert("Error getting your location. Please enable location services.");
-            }
-        );
-    } else {
-        alert("Geolocation is not supported by your browser.");
-    }
-    
-    // Set up map search box
+    // Set up search box
     const searchInput = document.getElementById('map-search-input');
-    const searchBox = new google.maps.places.SearchBox(searchInput);
-    
-    // Bias search results to current map view
-    map.addListener('bounds_changed', () => {
-        searchBox.setBounds(map.getBounds());
-    });
-    
-    // Handle search box selection
-    searchBox.addListener('places_changed', () => {
-        const places = searchBox.getPlaces();
-        if (places.length === 0) return;
+    if (searchInput) {
+        const searchBox = new google.maps.places.SearchBox(searchInput);
         
-        const place = places[0];
-        if (!place.geometry || !place.geometry.location) return;
+        // Bias search results to current map view
+        map.addListener('bounds_changed', function() {
+            searchBox.setBounds(map.getBounds());
+        });
         
-        // Set destination marker
-        const destinationLocation = {
-            lat: place.geometry.location.lat(),
-            lng: place.geometry.location.lng()
-        };
-        
-        destinationMarker.setPosition(destinationLocation);
-        destinationMarker.setMap(map);
-        
-        // Store office location
-        officeLocation = destinationLocation;
-        
-        // Update hidden fields
-        document.getElementById('office-lat').value = destinationLocation.lat;
-        document.getElementById('office-lng').value = destinationLocation.lng;
-        document.getElementById('office-address').value = place.formatted_address || place.name;
-        
-        // Calculate route
-        if (homeLocation) {
-            calculateRoute();
-        }
-    });
-    
-    // Handle clicks on the map
-    map.addListener('click', (event) => {
-        if (!officeLocation) {
-            // Set destination marker if not already set
-            const clickedLocation = {
-                lat: event.latLng.lat(),
-                lng: event.latLng.lng()
+        // Handle search results
+        searchBox.addListener('places_changed', function() {
+            const places = searchBox.getPlaces();
+            if (places.length === 0) return;
+            
+            const place = places[0];
+            if (!place.geometry || !place.geometry.location) return;
+            
+            // Get location coordinates
+            const location = {
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng(),
+                address: place.formatted_address || place.name
             };
             
-            destinationMarker.setPosition(clickedLocation);
-            destinationMarker.setMap(map);
+            // Determine if we're setting start or end location
+            const activeSelect = document.activeElement;
+            if (activeSelect && activeSelect.id === 'start-location') {
+                // Set start location
+                startMarker.setPosition(location);
+                startMarker.setMap(map);
+                activeSelect.value = 'other';
+                
+                // Update hidden fields
+                document.getElementById('custom-lat').value = location.lat;
+                document.getElementById('custom-lng').value = location.lng;
+                document.getElementById('custom-address').value = location.address;
+            } else if (activeSelect && activeSelect.id === 'end-location') {
+                // Set end location
+                endMarker.setPosition(location);
+                endMarker.setMap(map);
+                activeSelect.value = 'other';
+                
+                // Update hidden fields
+                document.getElementById('custom-lat').value = location.lat;
+                document.getElementById('custom-lng').value = location.lng;
+                document.getElementById('custom-address').value = location.address;
+            } else {
+                // Default to setting center of map
+                map.setCenter(location);
+            }
             
-            // Store office location
-            officeLocation = clickedLocation;
-            
-            // Update hidden fields
-            document.getElementById('office-lat').value = clickedLocation.lat;
-            document.getElementById('office-lng').value = clickedLocation.lng;
-            
-            // Get address via reverse geocoding
-            reverseGeocode(clickedLocation, (address) => {
-                document.getElementById('office-address').value = address;
-            });
-            
-            // Calculate route
-            if (homeLocation) {
+            // Try to calculate route
+            if (startMarker.getMap() && endMarker.getMap()) {
                 calculateRoute();
             }
-        }
-    });
+        });
+    }
     
-    // Initialize start/end location dropdowns
-    initializeLocationSelectors();
-}
-
-// Handle transport mode selection
-function selectMode(element) {
-    console.log("Transport mode selected:", element.dataset.mode);
+    // Set up location selectors
+    const startSelect = document.getElementById('start-location');
+    const endSelect = document.getElementById('end-location');
     
-    // Remove selected from all
-    document.querySelectorAll('.transport-option').forEach(option => {
-        option.classList.remove('selected');
-    });
+    if (startSelect) {
+        startSelect.addEventListener('change', function() {
+            handleLocationSelection(this.value, 'start');
+        });
+    }
     
-    // Add selected to clicked one
-    element.classList.add('selected');
-    
-    // Store selected mode
-    selectedMode = element.dataset.mode;
-    
-    // Update hidden input
-    document.getElementById('transport-mode').value = selectedMode;
-    
-    // Special handling for work from home
-    if (selectedMode === 'work_from_home') {
-        document.getElementById('map-section').style.display = 'none';
-        document.getElementById('distance-km').value = '0';
-        
-        // Show trip summary
-        updateTripPreview(0);
-    } else {
-        document.getElementById('map-section').style.display = 'block';
-        
-        // Recalculate route with new transport mode
-        if (homeLocation && officeLocation) {
-            calculateRoute();
-        }
+    if (endSelect) {
+        endSelect.addEventListener('change', function() {
+            handleLocationSelection(this.value, 'end');
+        });
     }
 }
 
-// Calculate route between home and office
-function calculateRoute() {
-    if (!homeLocation || !officeLocation || !selectedMode) {
-        console.log("Cannot calculate route: missing location or transport mode");
+// Handle location selection from dropdowns
+function handleLocationSelection(locationValue, locationType) {
+    if (!locationValue) return;
+    
+    // Skip for "other" option (handled by map click)
+    if (locationValue === 'other') return;
+    
+    // Get selected option
+    const select = document.getElementById(locationType + '-location');
+    const option = select.options[select.selectedIndex];
+    
+    if (!option) return;
+    
+    // Get coordinates from data attributes
+    const lat = option.getAttribute('data-lat');
+    const lng = option.getAttribute('data-lng');
+    
+    if (!lat || !lng) {
+        console.warn('Selected location missing coordinates');
         return;
     }
     
-    // Map transport mode to Google Maps travel mode
+    const location = {
+        lat: parseFloat(lat),
+        lng: parseFloat(lng)
+    };
+    
+    // Set appropriate marker
+    if (locationType === 'start') {
+        startMarker.setPosition(location);
+        startMarker.setMap(map);
+    } else {
+        endMarker.setPosition(location);
+        endMarker.setMap(map);
+    }
+    
+    // Center map on this location
+    map.setCenter(location);
+    
+    // Try to calculate route
+    if (startMarker.getMap() && endMarker.getMap()) {
+        calculateRoute();
+    }
+}
+
+// Calculate route between start and end
+function calculateRoute() {
+    if (!startMarker.getMap() || !endMarker.getMap()) {
+        console.warn('Cannot calculate route: missing markers');
+        return;
+    }
+    
+    // Get transport mode from selected option
+    const transportMode = document.getElementById('transport-mode').value;
+    if (!transportMode) {
+        console.warn('No transport mode selected');
+        return;
+    }
+    
+    // Map transport modes to Google Maps travel modes
     let travelMode;
-    switch (selectedMode) {
+    switch (transportMode) {
         case 'walking':
             travelMode = google.maps.TravelMode.WALKING;
             break;
@@ -219,27 +288,24 @@ function calculateRoute() {
         case 'public_transport':
             travelMode = google.maps.TravelMode.TRANSIT;
             break;
-        case 'car':
-        case 'carpool':
         default:
             travelMode = google.maps.TravelMode.DRIVING;
-            break;
     }
     
     // Create route request
     const request = {
-        origin: homeLocation,
-        destination: officeLocation,
+        origin: startMarker.getPosition(),
+        destination: endMarker.getPosition(),
         travelMode: travelMode
     };
     
-    // Get route
-    directionsService.route(request, (result, status) => {
+    // Calculate route
+    directionsService.route(request, function(result, status) {
         if (status === google.maps.DirectionsStatus.OK) {
             // Display route
             directionsRenderer.setDirections(result);
             
-            // Get distance and duration
+            // Calculate distance and duration
             const route = result.routes[0];
             let distance = 0;
             let duration = 0;
@@ -250,227 +316,83 @@ function calculateRoute() {
             });
             
             // Convert to km and minutes
-            distance = (distance / 1000).toFixed(2);
-            duration = Math.ceil(duration / 60);
-            
-            // Store calculated distance
-            calculatedDistance = distance;
+            const distanceKm = Math.round(distance / 100) / 10;
+            const durationMin = Math.round(duration / 60);
             
             // Update hidden field
-            document.getElementById('distance-km').value = distance;
+            document.getElementById('distance-km').value = distanceKm;
             
-            // Update trip preview
-            updateTripPreview(distance, duration);
+            // Update preview
+            updateTripPreview(distanceKm, durationMin);
         } else {
-            console.error("Directions request failed:", status);
-            alert("Could not calculate route. Please try again.");
+            console.error('Directions request failed:', status);
         }
     });
 }
 
-// Update trip preview with calculated data
+// Calculate route if possible (called from transport mode selection)
+function calculateRouteIfPossible() {
+    if (startMarker && endMarker && startMarker.getMap() && endMarker.getMap()) {
+        calculateRoute();
+    }
+}
+
+// Update trip preview with calculated values
 function updateTripPreview(distance, duration) {
-    const preview = document.getElementById('trip-preview');
-    if (!preview) return;
+    const previewSection = document.getElementById('trip-preview');
+    if (!previewSection) return;
     
-    preview.classList.remove('hidden');
+    // Show preview section
+    previewSection.classList.remove('hidden');
     
-    // Calculate credits based on transport mode and distance
-    let credits = 0;
-    if (selectedMode === 'work_from_home') {
-        credits = 10; // Fixed credits for working from home
+    // Get selected transport mode
+    const transportMode = document.getElementById('transport-mode').value;
+    
+    // Set mode name and credit rate
+    let modeName = 'Unknown';
+    let creditsPerKm = 0.5;
+    
+    switch (transportMode) {
+        case 'walking':
+            modeName = 'Walking';
+            creditsPerKm = 6;
+            break;
+        case 'bicycle':
+            modeName = 'Bicycle';
+            creditsPerKm = 5;
+            break;
+        case 'public_transport':
+            modeName = 'Public Transport';
+            creditsPerKm = 3;
+            break;
+        case 'carpool':
+            modeName = 'Carpool';
+            creditsPerKm = 2;
+            break;
+        case 'car':
+            modeName = 'Car (Single)';
+            creditsPerKm = 0.5;
+            break;
+        case 'work_from_home':
+            modeName = 'Work from Home';
+            creditsPerKm = 0;
+            break;
+    }
+    
+    // Calculate credits
+    let totalCredits = 0;
+    if (transportMode === 'work_from_home') {
+        totalCredits = 10; // Fixed amount for WFH
     } else {
-        const creditRates = {
-            'car': 0.5,
-            'carpool': 2,
-            'public_transport': 3,
-            'bicycle': 5,
-            'walking': 6
-        };
-        
-        credits = distance * (creditRates[selectedMode] || 1);
+        totalCredits = Math.round(distance * creditsPerKm * 10) / 10;
     }
     
-    // Format credits to 2 decimal places
-    credits = credits.toFixed(2);
-    
-    // Update preview content
-    const distanceText = document.getElementById('preview-distance');
-    const durationText = document.getElementById('preview-duration');
-    const creditsText = document.getElementById('preview-credits');
-    const transportText = document.getElementById('preview-transport');
-    
-    if (distanceText) distanceText.textContent = `${distance} km`;
-    if (durationText && duration) durationText.textContent = `${duration} min`;
-    if (creditsText) creditsText.textContent = `${credits} credits`;
-    
-    if (transportText) {
-        const modeNames = {
-            'car': 'Car (Single)',
-            'carpool': 'Carpool',
-            'public_transport': 'Public Transport',
-            'bicycle': 'Bicycle',
-            'walking': 'Walking',
-            'work_from_home': 'Work from Home'
-        };
-        
-        transportText.textContent = modeNames[selectedMode] || selectedMode;
-    }
+    // Update preview elements
+    document.getElementById('preview-transport').textContent = modeName;
+    document.getElementById('preview-distance').textContent = distance + ' km';
+    document.getElementById('preview-duration').textContent = duration + ' min';
+    document.getElementById('preview-credits').textContent = totalCredits + ' credits';
 }
 
-// Initialize location selectors
-function initializeLocationSelectors() {
-    const startLocationSelect = document.getElementById('start-location');
-    const endLocationSelect = document.getElementById('end-location');
-    
-    if (startLocationSelect && endLocationSelect) {
-        // Handle location selection changes
-        startLocationSelect.addEventListener('change', () => {
-            if (startLocationSelect.value === 'home') {
-                // Set start location to home
-                if (homeLocation) {
-                    userMarker.setPosition(homeLocation);
-                    userMarker.setMap(map);
-                    
-                    // Calculate route if both locations are set
-                    if (officeLocation && selectedMode) {
-                        calculateRoute();
-                    }
-                }
-            } else if (startLocationSelect.value === 'office') {
-                // Set start location to office
-                if (officeLocation) {
-                    userMarker.setPosition(officeLocation);
-                    userMarker.setMap(map);
-                    
-                    // Calculate route if both locations are set
-                    if (homeLocation && selectedMode) {
-                        calculateRoute();
-                    }
-                }
-            } else if (startLocationSelect.value === 'other') {
-                // Show map for custom location selection
-                document.getElementById('map-section').style.display = 'block';
-            }
-        });
-        
-        endLocationSelect.addEventListener('change', () => {
-            if (endLocationSelect.value === 'home') {
-                // Set end location to home
-                if (homeLocation) {
-                    destinationMarker.setPosition(homeLocation);
-                    destinationMarker.setMap(map);
-                    
-                    // Calculate route if both locations are set
-                    if (officeLocation && selectedMode) {
-                        calculateRoute();
-                    }
-                }
-            } else if (endLocationSelect.value === 'office') {
-                // Set end location to office
-                if (officeLocation) {
-                    destinationMarker.setPosition(officeLocation);
-                    destinationMarker.setMap(map);
-                    
-                    // Calculate route if both locations are set
-                    if (homeLocation && selectedMode) {
-                        calculateRoute();
-                    }
-                }
-            } else if (endLocationSelect.value === 'other') {
-                // Show map for custom location selection
-                document.getElementById('map-section').style.display = 'block';
-            }
-        });
-    }
-}
-
-// Reverse geocode to get address from coordinates
-function reverseGeocode(location, callback) {
-    const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({ 'location': location }, (results, status) => {
-        if (status === 'OK') {
-            if (results[0]) {
-                const address = results[0].formatted_address;
-                if (callback) {
-                    callback(address);
-                } else {
-                    // Assume it's home address
-                    document.getElementById('home-address').value = address;
-                }
-            }
-        } else {
-            console.error("Geocoder failed due to: " + status);
-        }
-    });
-}
-
-// Handle file upload preview
-function handleFileSelect(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const preview = document.getElementById('file-preview');
-            const previewContainer = document.getElementById('file-preview-container');
-            const uploadContainer = document.getElementById('file-upload-container');
-            
-            if (preview && previewContainer && uploadContainer) {
-                preview.src = e.target.result;
-                previewContainer.style.display = 'block';
-                uploadContainer.style.display = 'none';
-            }
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
-// Remove uploaded file
-function removeFile() {
-    const fileInput = document.getElementById('proof-upload');
-    const preview = document.getElementById('file-preview');
-    const previewContainer = document.getElementById('file-preview-container');
-    const uploadContainer = document.getElementById('file-upload-container');
-    
-    if (fileInput) fileInput.value = '';
-    if (preview) preview.src = '';
-    if (previewContainer) previewContainer.style.display = 'none';
-    if (uploadContainer) uploadContainer.style.display = 'block';
-}
-
-// Initialize everything when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM fully loaded");
-    
-    // Initialize map
-    if (typeof google !== 'undefined' && google.maps) {
-        initMap();
-    } else {
-        console.error("Google Maps API not loaded");
-    }
-    
-    // Add click handlers to transport options
-    document.querySelectorAll('.transport-option').forEach(option => {
-        option.addEventListener('click', function() {
-            selectMode(this);
-        });
-    });
-    
-    // Add file upload handler
-    const fileInput = document.getElementById('proof-upload');
-    if (fileInput) {
-        fileInput.addEventListener('change', function() {
-            handleFileSelect(this);
-        });
-    }
-    
-    // Add remove file handler
-    const removeButton = document.getElementById('remove-file');
-    if (removeButton) {
-        removeButton.addEventListener('click', removeFile);
-    }
-});
-
-// Make functions globally available
-window.selectMode = selectMode;
-window.handleFileSelect = handleFileSelect;
-window.removeFile = removeFile; 
+// Make initMap global for Google Maps API callback
+window.initMap = initMap; 
