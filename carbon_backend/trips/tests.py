@@ -315,7 +315,6 @@ class TripAPITestCase(APITestCase):
         self.completed_trip.proof_image = 'fake/path/to/image.jpg'
         self.completed_trip.save()
         
-        self.admin_client.force_authenticate(user=self.admin_user)
         url = reverse('trips:trip_verify', kwargs={'pk': self.completed_trip.pk})
         data = {
             'verification_status': 'verified'
@@ -345,4 +344,334 @@ class TripAPITestCase(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(float(response.data['total_credits_earned']), 1.26)
-        self.assertEqual(float(response.data['pending_credits']), 1.26) 
+        self.assertEqual(float(response.data['pending_credits']), 1.26)
+
+
+class TripTestCase(TestCase):
+    def setUp(self):
+        # Create test users
+        self.admin_user = User.objects.create_user(
+            username='admin_test',
+            email='admin_test@example.com',
+            password='password123',
+            is_super_admin=True
+        )
+        
+        self.employer_user = User.objects.create_user(
+            username='employer_test',
+            email='employer_test@example.com',
+            password='password123',
+            is_employer=True
+        )
+        
+        self.employee_user = User.objects.create_user(
+            username='employee_test',
+            email='employee_test@example.com',
+            password='password123',
+            is_employee=True
+        )
+        
+        # Create employer profile
+        self.employer = EmployerProfile.objects.create(
+            user=self.employer_user,
+            company_name='Test Company',
+            registration_number='12345',
+            industry='IT',
+            approved=True
+        )
+        
+        # Create employee profile
+        self.employee = EmployeeProfile.objects.create(
+            user=self.employee_user,
+            employer=self.employer,
+            approved=True
+        )
+        
+        # Create locations
+        self.home_location = Location.objects.create(
+            name='Home',
+            created_by=self.employee_user,
+            latitude=51.5074,
+            longitude=-0.1278,
+            address='London',
+            location_type='home'
+        )
+        
+        self.office_location = Location.objects.create(
+            name='Office',
+            created_by=self.employer_user,
+            latitude=51.5074,
+            longitude=-0.1378,
+            address='London',
+            location_type='office',
+            employer=self.employer
+        )
+        
+        # Create a trip
+        self.trip = Trip.objects.create(
+            employee=self.employee,
+            start_location=self.home_location,
+            start_time=timezone.now(),
+            transport_mode='bicycle'
+        )
+    
+    def test_trip_creation(self):
+        """Test that a trip can be created."""
+        self.assertEqual(Trip.objects.count(), 1)
+        self.assertEqual(self.trip.employee, self.employee)
+        self.assertEqual(self.trip.start_location, self.home_location)
+        self.assertEqual(self.trip.transport_mode, 'bicycle')
+        self.assertIsNone(self.trip.end_time)
+        self.assertIsNone(self.trip.end_location)
+        self.assertEqual(self.trip.verification_status, 'pending')
+    
+    def test_trip_end(self):
+        """Test that a trip can be ended."""
+        self.trip.end_location = self.office_location
+        self.trip.end_time = timezone.now() + timedelta(hours=1)
+        self.trip.distance_km = Decimal('10.5')
+        self.trip.carbon_savings = Decimal('1.26')  # 10.5km * 0.12kg CO2/km (car baseline)
+        self.trip.credits_earned = Decimal('1.26')
+        self.trip.save()
+        
+        self.assertEqual(self.trip.distance_km, Decimal('10.5'))
+        self.assertEqual(self.trip.carbon_savings, Decimal('1.26'))
+        self.assertEqual(self.trip.credits_earned, Decimal('1.26'))
+        self.assertIsNotNone(self.trip.end_time)
+        self.assertEqual(self.trip.end_location, self.office_location)
+    
+    def test_trip_duration(self):
+        """Test the trip duration property."""
+        self.trip.end_time = self.trip.start_time + timedelta(hours=1)
+        self.trip.save()
+        
+        duration = self.trip.duration
+        self.assertEqual(duration.seconds, 3600)  # 1 hour = 3600 seconds 
+
+
+class EmployeeTripFeaturesTestCase(TestCase):
+    """Tests specifically for employee trip logging features."""
+    
+    def setUp(self):
+        # Create users
+        self.employee_user = User.objects.create_user(
+            username='employee_feature_test',
+            email='employee_feature@example.com',
+            password='password123',
+            is_employee=True,
+            approved=True
+        )
+        
+        self.employer_user = User.objects.create_user(
+            username='employer_feature_test',
+            email='employer_feature@example.com',
+            password='password123',
+            is_employer=True,
+            approved=True
+        )
+        
+        # Create employer
+        self.employer = EmployerProfile.objects.create(
+            user=self.employer_user,
+            company_name='Feature Test Company',
+            registration_number='54321',
+            industry='Technology',
+            approved=True
+        )
+        
+        # Create employee
+        self.employee = EmployeeProfile.objects.create(
+            user=self.employee_user,
+            employer=self.employer,
+            approved=True
+        )
+        
+        # Create locations
+        self.home_location = Location.objects.create(
+            name='Employee Home',
+            created_by=self.employee_user,
+            latitude=51.5074,
+            longitude=-0.1278,
+            address='123 Employee Home St, London',
+            location_type='home'
+        )
+        
+        self.office_location = Location.objects.create(
+            name='Feature Office',
+            created_by=self.employer_user,
+            latitude=51.5074,
+            longitude=-0.1378,
+            address='789 Office Feature St, London',
+            location_type='office',
+            employer=self.employer
+        )
+        
+        # Setup API client
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.employee_user)
+    
+    def test_employee_create_trip_log(self):
+        """Test that an employee can create a new trip log."""
+        url = reverse('trips:trip_start')
+        data = {
+            'start_location': self.home_location.name,
+            'start_address': self.home_location.address,
+            'start_latitude': self.home_location.latitude,
+            'start_longitude': self.home_location.longitude,
+            'transport_mode': 'bicycle'
+        }
+        
+        # Check trip count before
+        initial_count = Trip.objects.count()
+        
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Check trip was created
+        self.assertEqual(Trip.objects.count(), initial_count + 1)
+        
+        # Check trip details
+        trip = Trip.objects.latest('id')
+        self.assertEqual(trip.employee, self.employee)
+        self.assertEqual(trip.transport_mode, 'bicycle')
+        self.assertIsNotNone(trip.start_time)
+        self.assertIsNone(trip.end_time)
+    
+    def test_employee_complete_trip(self):
+        """Test that an employee can complete a trip they started."""
+        # Create a started trip
+        trip = Trip.objects.create(
+            employee=self.employee,
+            start_location=self.home_location,
+            start_time=timezone.now() - timedelta(minutes=30),
+            transport_mode='bicycle'
+        )
+        
+        url = reverse('trips:trip_end', kwargs={'pk': trip.pk})
+        data = {
+            'end_location': self.office_location.name,
+            'end_address': self.office_location.address,
+            'end_latitude': self.office_location.latitude,
+            'end_longitude': self.office_location.longitude,
+            'distance_km': 8.5
+        }
+        
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Refresh trip from DB
+        trip.refresh_from_db()
+        self.assertIsNotNone(trip.end_time)
+        self.assertEqual(float(trip.distance_km), 8.5)
+        
+        # Check carbon calculations
+        self.assertGreater(float(trip.carbon_savings), 0)
+        self.assertGreater(float(trip.credits_earned), 0)
+        
+        # Check carbon credit was created
+        self.assertEqual(CarbonCredit.objects.filter(source_trip=trip).count(), 1)
+    
+    def test_upload_trip_proof(self):
+        """Test that an employee can upload proof for a completed trip."""
+        # Create a completed trip
+        trip = Trip.objects.create(
+            employee=self.employee,
+            start_location=self.home_location,
+            end_location=self.office_location,
+            start_time=timezone.now() - timedelta(hours=1),
+            end_time=timezone.now() - timedelta(minutes=30),
+            transport_mode='bicycle',
+            distance_km=Decimal('5.0'),
+            carbon_savings=Decimal('0.6'),
+            credits_earned=Decimal('0.6')
+        )
+        
+        # Create a test image
+        image = Image.new('RGB', (100, 100), color = 'red')
+        image_io = io.BytesIO()
+        image.save(image_io, format='JPEG')
+        image_io.seek(0)
+        image_io.name = 'test.jpg'
+        
+        url = reverse('trips:trip_proof_upload', kwargs={'pk': trip.pk})
+        
+        # Create multipart data
+        data = {'proof_image': image_io}
+        
+        response = self.client.post(url, data, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Refresh trip from DB
+        trip.refresh_from_db()
+        self.assertIsNotNone(trip.proof_image)
+    
+    def test_employee_trip_list(self):
+        """Test that an employee can see their own trips."""
+        # Create multiple trips
+        Trip.objects.create(
+            employee=self.employee,
+            start_location=self.home_location,
+            end_location=self.office_location,
+            start_time=timezone.now() - timedelta(days=2),
+            end_time=timezone.now() - timedelta(days=2) + timedelta(hours=1),
+            transport_mode='bicycle',
+            distance_km=Decimal('7.0'),
+            carbon_savings=Decimal('0.84'),
+            credits_earned=Decimal('0.84')
+        )
+        
+        Trip.objects.create(
+            employee=self.employee,
+            start_location=self.office_location,
+            end_location=self.home_location,
+            start_time=timezone.now() - timedelta(days=1),
+            end_time=timezone.now() - timedelta(days=1) + timedelta(hours=1),
+            transport_mode='bicycle',
+            distance_km=Decimal('7.0'),
+            carbon_savings=Decimal('0.84'),
+            credits_earned=Decimal('0.84')
+        )
+        
+        url = reverse('trips:trip_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+    
+    def test_employee_carbon_credit_dashboard(self):
+        """Test that an employee can see their carbon credit dashboard."""
+        # Create a trip and verified carbon credit
+        trip = Trip.objects.create(
+            employee=self.employee,
+            start_location=self.home_location,
+            end_location=self.office_location,
+            start_time=timezone.now() - timedelta(days=3),
+            end_time=timezone.now() - timedelta(days=3) + timedelta(hours=1),
+            transport_mode='bicycle',
+            distance_km=Decimal('10.0'),
+            carbon_savings=Decimal('1.2'),
+            credits_earned=Decimal('1.2'),
+            verification_status='verified'
+        )
+        
+        CarbonCredit.objects.create(
+            amount=Decimal('1.2'),
+            source_trip=trip,
+            owner_type='employee',
+            owner_id=self.employee.id,
+            status='active',
+            expiry_date=timezone.now() + timedelta(days=365)
+        )
+        
+        # Test credit stats
+        url = reverse('trips:credit_stats')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(float(response.data['total_credits_earned']), 1.2)
+        self.assertEqual(float(response.data['active_credits']), 1.2)
+        
+        # Test credit list
+        url = reverse('trips:credit_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(float(response.data[0]['amount']), 1.2) 

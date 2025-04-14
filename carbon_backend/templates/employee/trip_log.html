@@ -10,7 +10,7 @@
     }
     
     .map-container {
-        height: 300px;
+        height: 400px;
         width: 100%;
         background-color: #f3f4f6;
         border-radius: 0.5rem;
@@ -57,20 +57,27 @@
     
     .transport-option {
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
     }
     
     .transport-option:hover {
-        transform: translateY(-3px);
+        background-color: #f0fdf4;
+        border-color: #34d399;
     }
     
     .transport-option.selected {
-        border-color: #10B981;
-        background-color: #ECFDF5;
+        background-color: #d1fae5;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.5);
     }
     
     .transport-option.selected .transport-icon {
         color: #10B981;
+    }
+    
+    .transport-option.selected span {
+        color: #047857;
+        font-weight: 600;
     }
     
     .transport-icon {
@@ -129,14 +136,60 @@
         <form id="trip-form" method="post" action="{% url 'employee_trip_log' %}" enctype="multipart/form-data">
             {% csrf_token %}
             
+            <!-- Home Location Registration (if not already set) -->
+            {% if not has_home_location %}
+            <div class="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h2 class="text-xl font-semibold mb-2">First Time Setup: Register Home Location</h2>
+                <p class="text-sm text-gray-600 mb-4">
+                    Before logging trips, we need your home location. This will be saved for future trips.
+                </p>
+                
+                <div class="map-container mb-4">
+                    <div class="map-loading" id="map-loading">
+                        <div class="spinner">
+                            <svg class="animate-spin h-8 w-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                        <span class="ml-2 text-gray-600">Loading map...</span>
+                    </div>
+                    <div class="map-search-container">
+                        <input id="map-search-input" type="text" placeholder="Search for your home address">
+                    </div>
+                    <div id="trip-map" class="h-full w-full"></div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="home-lat" class="block text-sm font-medium text-gray-700 mb-1">Home Latitude</label>
+                        <input type="text" id="home-lat" name="home_latitude" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
+                    </div>
+                    <div>
+                        <label for="home-lng" class="block text-sm font-medium text-gray-700 mb-1">Home Longitude</label>
+                        <input type="text" id="home-lng" name="home_longitude" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="home-address" class="block text-sm font-medium text-gray-700 mb-1">Home Address</label>
+                    <input type="text" id="home-address" name="home_address" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+                
+                <div class="flex justify-end">
+                    <button type="submit" name="register_home" value="true" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Register Home Location</button>
+                </div>
+            </div>
+            {% endif %}
+            
             <!-- Trip Details Section -->
-            <div class="mb-8">
+            <div class="mb-8 {% if not has_home_location %}hidden{% endif %}">
                 <h2 class="text-xl font-semibold mb-6">Trip Details</h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                         <label for="start-location" class="block text-sm font-medium text-gray-700 mb-1">Start Location</label>
-                        <select id="start-location" name="start_location" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <select id="start-location" name="start_location" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
                             <option value="">Select a location</option>
                             <!-- List employee home and employer locations -->
                             <option value="home">My Home</option>
@@ -149,7 +202,7 @@
                     
                     <div>
                         <label for="end-location" class="block text-sm font-medium text-gray-700 mb-1">End Location</label>
-                        <select id="end-location" name="end_location" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <select id="end-location" name="end_location" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
                             <option value="">Select a location</option>
                             <!-- List employee home and employer locations -->
                             <option value="home">My Home</option>
@@ -162,9 +215,11 @@
                 </div>
                 
                 <!-- Custom Location Map -->
-                <div id="map-section" class="mb-6" style="display: none;">
-                    <h3 class="text-lg font-medium mb-2">Select Location on Map</h3>
-                    <p class="text-sm text-gray-600 mb-3">Click on the map to select your location or search for an address.</p>
+                <div id="map-section" class="mb-6">
+                    <h3 class="text-lg font-medium mb-2">Trip Route</h3>
+                    <p class="text-sm text-gray-600 mb-3">
+                        The map shows the route between your selected locations. Distance and travel time will be calculated based on your transport mode.
+                    </p>
                     
                     <div class="map-container">
                         <div class="map-loading" id="map-loading">
@@ -182,69 +237,66 @@
                         <div id="trip-map" class="h-full w-full"></div>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-4 mt-4">
-                        <div>
-                            <label for="custom-lat" class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                            <input type="text" id="custom-lat" name="custom_latitude" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                        </div>
-                        <div>
-                            <label for="custom-lng" class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                            <input type="text" id="custom-lng" name="custom_longitude" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <label for="custom-address" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                        <input type="text" id="custom-address" name="custom_address" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <!-- Hidden fields for location data -->
+                    <div class="hidden">
+                        <input type="hidden" id="office-lat" name="office_latitude">
+                        <input type="hidden" id="office-lng" name="office_longitude">
+                        <input type="hidden" id="office-address" name="office_address">
+                        
+                        <input type="hidden" id="custom-lat" name="custom_latitude">
+                        <input type="hidden" id="custom-lng" name="custom_longitude">
+                        <input type="hidden" id="custom-address" name="custom_address">
+                        
+                        <input type="hidden" id="distance-km" name="distance_km">
                     </div>
                 </div>
                 
                 <div>
                     <label for="trip-date" class="block text-sm font-medium text-gray-700 mb-1">Trip Date</label>
-                    <input type="date" id="trip-date" name="trip_date" value="{{ today|date:'Y-m-d' }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <input type="date" id="trip-date" name="trip_date" value="{{ today|date:'Y-m-d' }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
                 </div>
             </div>
             
             <!-- Transport Mode Section -->
-            <div class="mb-8">
+            <div class="mb-8 {% if not has_home_location %}hidden{% endif %}">
                 <h2 class="text-xl font-semibold mb-6">Transport Mode</h2>
                 <p class="text-sm text-gray-600 mb-4">Select how you commuted. Different modes earn different amounts of carbon credits.</p>
                 
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-                    <div class="transport-option border border-gray-200 rounded-lg p-4 flex flex-col items-center" data-value="public_transport">
-                        <div class="transport-icon">🚆</div>
-                        <span class="text-sm font-medium">Public Transport</span>
-                        <span class="text-xs text-green-600 mt-1">+3 credits/km</span>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="public_transport">
+                        <div class="text-3xl mb-2">🚆</div>
+                        <div class="font-semibold">Public Transport</div>
+                        <div class="text-sm text-green-600">+3 credits/km</div>
                     </div>
                     
-                    <div class="transport-option border border-gray-200 rounded-lg p-4 flex flex-col items-center" data-value="bicycle">
-                        <div class="transport-icon">🚲</div>
-                        <span class="text-sm font-medium">Bicycle</span>
-                        <span class="text-xs text-green-600 mt-1">+5 credits/km</span>
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="bicycle">
+                        <div class="text-3xl mb-2">🚲</div>
+                        <div class="font-semibold">Bicycle</div>
+                        <div class="text-sm text-green-600">+5 credits/km</div>
                     </div>
                     
-                    <div class="transport-option border border-gray-200 rounded-lg p-4 flex flex-col items-center" data-value="walking">
-                        <div class="transport-icon">🚶</div>
-                        <span class="text-sm font-medium">Walking</span>
-                        <span class="text-xs text-green-600 mt-1">+6 credits/km</span>
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="walking">
+                        <div class="text-3xl mb-2">🚶</div>
+                        <div class="font-semibold">Walking</div>
+                        <div class="text-sm text-green-600">+6 credits/km</div>
                     </div>
                     
-                    <div class="transport-option border border-gray-200 rounded-lg p-4 flex flex-col items-center" data-value="carpool">
-                        <div class="transport-icon">🚗</div>
-                        <span class="text-sm font-medium">Carpool</span>
-                        <span class="text-xs text-green-600 mt-1">+2 credits/km</span>
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="carpool">
+                        <div class="text-3xl mb-2">🚗</div>
+                        <div class="font-semibold">Carpool</div>
+                        <div class="text-sm text-green-600">+2 credits/km</div>
                     </div>
                     
-                    <div class="transport-option border border-gray-200 rounded-lg p-4 flex flex-col items-center" data-value="car">
-                        <div class="transport-icon">🚙</div>
-                        <span class="text-sm font-medium">Car (Single)</span>
-                        <span class="text-xs text-green-600 mt-1">+0.5 credits/km</span>
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="car">
+                        <div class="text-3xl mb-2">🚙</div>
+                        <div class="font-semibold">Car (Single)</div>
+                        <div class="text-sm text-green-600">+0.5 credits/km</div>
                     </div>
                     
-                    <div class="transport-option border border-gray-200 rounded-lg p-4 flex flex-col items-center" data-value="work_from_home">
-                        <div class="transport-icon">🏠</div>
-                        <span class="text-sm font-medium">Work from Home</span>
-                        <span class="text-xs text-green-600 mt-1">+10 credits</span>
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="work_from_home">
+                        <div class="text-3xl mb-2">🏠</div>
+                        <div class="font-semibold">Work from Home</div>
+                        <div class="text-sm text-green-600">+10 credits</div>
                     </div>
                 </div>
                 
@@ -252,47 +304,50 @@
             </div>
             
             <!-- Trip Proof Section -->
-            <div class="mb-8">
+            <div class="mb-8 {% if not has_home_location %}hidden{% endif %}">
                 <h2 class="text-xl font-semibold mb-4">Trip Proof</h2>
                 <p class="text-sm text-gray-600 mb-4">Upload an image of your ticket, receipt, or any proof of your commute (optional).</p>
                 
-                <div class="file-upload-container" id="file-upload-container">
+                <div class="file-upload-container cursor-pointer" id="file-upload-container" onclick="document.getElementById('proof-upload').click()">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <p class="text-gray-500 mb-2">Drag and drop your proof here or click to upload</p>
-                    <p class="text-xs text-gray-400">Supported formats: JPG, PNG, PDF</p>
-                    <input type="file" id="proof-upload" name="proof_image" class="hidden" accept="image/*,application/pdf">
+                    <p class="text-gray-500 mb-2">Click here to upload proof</p>
+                    <p class="text-xs text-gray-400">Supported formats: JPG, PNG</p>
+                    <input type="file" id="proof-upload" name="proof_image" class="hidden" accept="image/*">
                 </div>
                 
-                <div id="file-preview-container" class="mt-4" style="display: none;">
+                <div id="file-preview-container" class="mt-4 text-center" style="display: none;">
                     <img id="file-preview" class="file-preview mx-auto" src="" alt="Proof preview">
                     <button type="button" class="mt-2 text-sm text-red-600 hover:text-red-800" id="remove-file">Remove image</button>
                 </div>
             </div>
             
-            <!-- Distance and CO2 Preview Section -->
-            <div class="mb-8 p-4 bg-gray-50 rounded-lg hidden" id="trip-preview">
-                <h2 class="text-lg font-semibold mb-2">Trip Summary</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Trip Preview Section -->
+            <div class="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200 hidden" id="trip-preview">
+                <h2 class="text-lg font-semibold mb-4">Trip Summary</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div>
-                        <span class="text-sm text-gray-500">Estimated Distance:</span>
-                        <p class="text-lg font-medium" id="estimated-distance">0 km</p>
+                        <span class="text-sm text-gray-500 block mb-1">Transport Mode:</span>
+                        <p class="text-lg font-medium" id="preview-transport">-</p>
                     </div>
                     <div>
-                        <span class="text-sm text-gray-500">Estimated CO2 Saved:</span>
-                        <p class="text-lg font-medium" id="estimated-co2">0 kg</p>
+                        <span class="text-sm text-gray-500 block mb-1">Distance:</span>
+                        <p class="text-lg font-medium" id="preview-distance">0 km</p>
                     </div>
                     <div>
-                        <span class="text-sm text-gray-500">Potential Credits:</span>
-                        <p class="text-lg font-medium text-green-600" id="potential-credits">0</p>
+                        <span class="text-sm text-gray-500 block mb-1">Estimated Duration:</span>
+                        <p class="text-lg font-medium" id="preview-duration">0 min</p>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-500 block mb-1">Carbon Credits:</span>
+                        <p class="text-lg font-medium text-green-600" id="preview-credits">0 credits</p>
                     </div>
                 </div>
-                <input type="hidden" id="trip-distance" name="distance_km">
             </div>
             
             <!-- Submit Section -->
-            <div class="flex justify-end space-x-3">
+            <div class="flex justify-end space-x-3 {% if not has_home_location %}hidden{% endif %}">
                 <a href="{% url 'employee_dashboard' %}" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Cancel</a>
                 <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Log Trip</button>
             </div>
@@ -302,332 +357,7 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Load Google Maps API directly in the page with a working API key -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPk6bXFiuQp0yEDvsTc0euHPz3TvuYPrQ&libraries=places"></script>
-
-<script>
-// Initialize global variables
-let map;
-let marker;
-let startMarker;
-let endMarker;
-let directionsService;
-let directionsRenderer;
-let isStartLocation = true; // Flag to determine if selecting start or end location
-
-// Initialize maps when document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    initMap();
-    
-    // Set up transport mode selection
-    setupTransportSelection();
-    
-    // Set up file upload
-    setupFileUpload();
-    
-    // Set up location selectors
-    setupLocationSelectors();
-});
-
-function initMap() {
-    // Default location (San Francisco)
-    const defaultLocation = { lat: 37.7749, lng: -122.4194 };
-    
-    // Create map
-    map = new google.maps.Map(document.getElementById('trip-map'), {
-        zoom: 13,
-        center: defaultLocation,
-        mapTypeControl: true,
-        streetViewControl: false,
-        fullscreenControl: true
-    });
-    
-    // Create direction services
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({
-        map: map,
-        suppressMarkers: true,
-        polylineOptions: {
-            strokeColor: '#4CAF50',
-            strokeWeight: 5
-        }
-    });
-    
-    // Create marker for map selection
-    marker = new google.maps.Marker({
-        position: defaultLocation,
-        map: map,
-        draggable: true,
-        animation: google.maps.Animation.DROP
-    });
-    
-    // Create start and end markers
-    startMarker = new google.maps.Marker({
-        map: map,
-        icon: {
-            url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
-            scaledSize: new google.maps.Size(32, 32)
-        }
-    });
-    
-    endMarker = new google.maps.Marker({
-        map: map,
-        icon: {
-            url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-            scaledSize: new google.maps.Size(32, 32)
-        }
-    });
-    
-    // Set up the search box
-    const searchInput = document.getElementById('map-search-input');
-    const searchBox = new google.maps.places.SearchBox(searchInput);
-    
-    // Bias search results to current map view
-    map.addListener('bounds_changed', () => {
-        searchBox.setBounds(map.getBounds());
-    });
-    
-    // Listen for search box selections
-    searchBox.addListener('places_changed', () => {
-        const places = searchBox.getPlaces();
-        if (places.length === 0) return;
-        
-        const place = places[0];
-        if (!place.geometry || !place.geometry.location) return;
-        
-        // Set marker position to selected place
-        marker.setPosition(place.geometry.location);
-        map.setCenter(place.geometry.location);
-        map.setZoom(15);
-        
-        // Update form fields
-        updateLocationFields(place.geometry.location, place.formatted_address || place.name);
-    });
-    
-    // Listen for click on map
-    map.addListener('click', (event) => {
-        marker.setPosition(event.latLng);
-        
-        // Perform reverse geocoding
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ 'location': event.latLng }, (results, status) => {
-            if (status === 'OK' && results[0]) {
-                updateLocationFields(event.latLng, results[0].formatted_address);
-            } else {
-                updateLocationFields(event.latLng, 'Unknown location');
-            }
-        });
-    });
-    
-    // Listen for marker drag end
-    marker.addListener('dragend', () => {
-        const position = marker.getPosition();
-        
-        // Perform reverse geocoding
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ 'location': position }, (results, status) => {
-            if (status === 'OK' && results[0]) {
-                updateLocationFields(position, results[0].formatted_address);
-            } else {
-                updateLocationFields(position, 'Unknown location');
-            }
-        });
-    });
-    
-    // Hide loading indicator
-    const loadingIndicator = document.getElementById('map-loading');
-    if (loadingIndicator) {
-        loadingIndicator.style.display = 'none';
-    }
-}
-
-function updateLocationFields(position, address) {
-    document.getElementById('custom-lat').value = position.lat().toFixed(7);
-    document.getElementById('custom-lng').value = position.lng().toFixed(7);
-    document.getElementById('custom-address').value = address;
-}
-
-function setupTransportSelection() {
-    const transportOptions = document.querySelectorAll('.transport-option');
-    const transportModeInput = document.getElementById('transport-mode');
-    
-    transportOptions.forEach(option => {
-        option.addEventListener('click', () => {
-            // Remove selected class from all options
-            transportOptions.forEach(opt => opt.classList.remove('selected'));
-            
-            // Add selected class to clicked option
-            option.classList.add('selected');
-            
-            // Update hidden input
-            transportModeInput.value = option.getAttribute('data-value');
-            
-            // Show or hide map based on work from home selection
-            if (option.getAttribute('data-value') === 'work_from_home') {
-                document.getElementById('map-section').style.display = 'none';
-                // Set default values
-                updateTripPreview(0);
-            } else {
-                updateTripDistance();
-            }
-        });
-    });
-}
-
-function setupFileUpload() {
-    const fileUploadContainer = document.getElementById('file-upload-container');
-    const fileInput = document.getElementById('proof-upload');
-    const previewContainer = document.getElementById('file-preview-container');
-    const previewImage = document.getElementById('file-preview');
-    const removeButton = document.getElementById('remove-file');
-    
-    fileUploadContainer.addEventListener('click', () => {
-        fileInput.click();
-    });
-    
-    fileUploadContainer.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        fileUploadContainer.classList.add('border-blue-500');
-    });
-    
-    fileUploadContainer.addEventListener('dragleave', () => {
-        fileUploadContainer.classList.remove('border-blue-500');
-    });
-    
-    fileUploadContainer.addEventListener('drop', (e) => {
-        e.preventDefault();
-        fileUploadContainer.classList.remove('border-blue-500');
-        
-        if (e.dataTransfer.files.length) {
-            fileInput.files = e.dataTransfer.files;
-            previewFile(e.dataTransfer.files[0]);
-        }
-    });
-    
-    fileInput.addEventListener('change', () => {
-        if (fileInput.files.length) {
-            previewFile(fileInput.files[0]);
-        }
-    });
-    
-    removeButton.addEventListener('click', () => {
-        fileInput.value = '';
-        previewContainer.style.display = 'none';
-        fileUploadContainer.style.display = 'block';
-    });
-    
-    function previewFile(file) {
-        if (file.type.match('image.*')) {
-            const reader = new FileReader();
-            
-            reader.onload = (e) => {
-                previewImage.src = e.target.result;
-                previewContainer.style.display = 'block';
-                fileUploadContainer.style.display = 'none';
-            };
-            
-            reader.readAsDataURL(file);
-        } else {
-            // Handle non-image files
-            previewImage.src = '';
-            previewImage.alt = file.name;
-            previewContainer.style.display = 'block';
-            fileUploadContainer.style.display = 'none';
-        }
-    }
-}
-
-function setupLocationSelectors() {
-    const startLocationSelect = document.getElementById('start-location');
-    const endLocationSelect = document.getElementById('end-location');
-    const mapSection = document.getElementById('map-section');
-    
-    startLocationSelect.addEventListener('change', () => {
-        if (startLocationSelect.value === 'other') {
-            isStartLocation = true;
-            mapSection.style.display = 'block';
-        } else {
-            updateTripDistance();
-        }
-    });
-    
-    endLocationSelect.addEventListener('change', () => {
-        if (endLocationSelect.value === 'other') {
-            isStartLocation = false;
-            mapSection.style.display = 'block';
-        } else {
-            updateTripDistance();
-        }
-    });
-}
-
-function updateTripDistance() {
-    const startLocationSelect = document.getElementById('start-location');
-    const endLocationSelect = document.getElementById('end-location');
-    const transportModeInput = document.getElementById('transport-mode');
-    
-    // Only calculate if we have both locations and a transport mode
-    if (startLocationSelect.value && endLocationSelect.value && transportModeInput.value) {
-        // In a real app, we would make an API call to calculate the distance
-        // For demo purposes, let's use a random value between 2 and 30
-        const distance = Math.random() * 28 + 2;
-        updateTripPreview(distance);
-    }
-}
-
-function updateTripPreview(distance) {
-    const transportMode = document.getElementById('transport-mode').value;
-    const tripPreview = document.getElementById('trip-preview');
-    const estimatedDistance = document.getElementById('estimated-distance');
-    const estimatedCO2 = document.getElementById('estimated-co2');
-    const potentialCredits = document.getElementById('potential-credits');
-    const tripDistanceInput = document.getElementById('trip-distance');
-    
-    // Calculate CO2 saved and credits based on transport mode
-    let co2Saved = 0;
-    let credits = 0;
-    
-    // Fixed distance for work from home
-    if (transportMode === 'work_from_home') {
-        distance = 0;
-        co2Saved = 10;
-        credits = 10;
-    } else {
-        // Calculate based on distance and mode
-        switch(transportMode) {
-            case 'public_transport':
-                co2Saved = distance * 0.17;
-                credits = distance * 3;
-                break;
-            case 'bicycle':
-                co2Saved = distance * 0.25;
-                credits = distance * 5;
-                break;
-            case 'walking':
-                co2Saved = distance * 0.25;
-                credits = distance * 6;
-                break;
-            case 'carpool':
-                co2Saved = distance * 0.10;
-                credits = distance * 2;
-                break;
-            case 'car':
-                co2Saved = distance * 0.03;
-                credits = distance * 0.5;
-                break;
-        }
-    }
-    
-    // Update preview text
-    estimatedDistance.textContent = distance.toFixed(1) + ' km';
-    estimatedCO2.textContent = co2Saved.toFixed(1) + ' kg';
-    potentialCredits.textContent = credits.toFixed(1);
-    
-    // Update hidden input
-    tripDistanceInput.value = distance.toFixed(1);
-    
-    // Show preview
-    tripPreview.classList.remove('hidden');
-}
-</script>
+<!-- Load Google Maps API with the provided API key -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDwWRoTtWgjQc--nP3WoZpH6IrpTQ9gw7w&libraries=places,geometry"></script>
+<script src="/static/js/trip-log.js"></script>
 {% endblock %} 

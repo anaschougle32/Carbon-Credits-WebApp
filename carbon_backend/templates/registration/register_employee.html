@@ -1,0 +1,454 @@
+{% extends 'base.html' %}
+
+{% block title %}Register as Employee - Carbon Credits Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .form-section {
+        margin-bottom: 2rem;
+    }
+    
+    .form-section h2 {
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #eaeaea;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+        border-color: #2B9348;
+        box-shadow: 0 0 0 2px rgba(43, 147, 72, 0.2);
+        outline: none;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .error-message {
+        color: #e53e3e;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .required-field::after {
+        content: '*';
+        color: #e53e3e;
+        margin-left: 0.25rem;
+    }
+    
+    .map-container {
+        height: 300px;
+        width: 100%;
+        background-color: #f3f4f6;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    #home-map {
+        height: 100%;
+        width: 100%;
+    }
+    
+    .map-search-container {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        z-index: 10;
+        background: white;
+        padding: 10px;
+        border-radius: 4px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container px-4 py-6">
+    <div class="relative mb-8">
+        <div class="bg-pattern"></div>
+        <div class="relative z-10">
+            <h1 class="section-headline text-3xl md:text-4xl font-bold mb-6">Register as an Employee</h1>
+            <p class="text-gray-600 max-w-3xl">
+                Join our carbon credits platform and start earning rewards for your sustainable commutes.
+                Fill out the form below to create your account.
+            </p>
+        </div>
+    </div>
+
+    <!-- Display flash messages if any -->
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="p-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Registration Form -->
+    <div class="modern-card p-6 mb-8">
+        <form method="post" action="{% url 'employee_register' %}">
+            {% csrf_token %}
+            
+            <!-- Account Information Section -->
+            <div class="form-section">
+                <h2 class="text-xl font-semibold mb-4">Account Information</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1 required-field">Email Address</label>
+                        <input type="email" id="email" name="email" class="form-control" required>
+                        {% if form.email.errors %}
+                        <p class="error-message">{{ form.email.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-1 required-field">Password</label>
+                        <input type="password" id="password" name="password" class="form-control" required>
+                        {% if form.password.errors %}
+                        <p class="error-message">{{ form.password.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1 required-field">First Name</label>
+                        <input type="text" id="first_name" name="first_name" class="form-control" required>
+                        {% if form.first_name.errors %}
+                        <p class="error-message">{{ form.first_name.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1 required-field">Last Name</label>
+                        <input type="text" id="last_name" name="last_name" class="form-control" required>
+                        {% if form.last_name.errors %}
+                        <p class="error-message">{{ form.last_name.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Employer Selection Section -->
+            <div class="form-section">
+                <h2 class="text-xl font-semibold mb-4">Employer Information</h2>
+                
+                <div class="form-group">
+                    <label for="employer" class="block text-sm font-medium text-gray-700 mb-1 required-field">Select Your Employer</label>
+                    <select id="employer" name="employer" class="form-control" required>
+                        <option value="">-- Select an employer --</option>
+                        {% for employer in employers %}
+                            <option value="{{ employer.id }}">{{ employer.company_name }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if form.employer.errors %}
+                    <p class="error-message">{{ form.employer.errors|join:", " }}</p>
+                    {% endif %}
+                    
+                    <p class="text-sm text-gray-500 mt-2">
+                        If your employer is not listed, they may need to register first.
+                        <a href="{% url 'contact' %}" class="text-green-600 hover:text-green-700">Contact us</a> for assistance.
+                    </p>
+                </div>
+                
+                <div class="form-group mt-4">
+                    <label for="employee_id" class="block text-sm font-medium text-gray-700 mb-1">Employee ID (Optional)</label>
+                    <input type="text" id="employee_id" name="employee_id" class="form-control">
+                    <p class="text-sm text-gray-500 mt-1">If your employer requires an employee ID for verification.</p>
+                </div>
+            </div>
+            
+            <!-- Home Address Section -->
+            <div class="form-section">
+                <h2 class="text-xl font-semibold mb-4">Home Address</h2>
+                <p class="text-sm text-gray-600 mb-4">
+                    Please provide your home address. This will be used as your default starting location for commutes.
+                </p>
+                
+                <div class="form-group">
+                    <label for="address_line1" class="block text-sm font-medium text-gray-700 mb-1 required-field">Address Line 1</label>
+                    <input type="text" id="address_line1" name="address_line1" class="form-control" required>
+                </div>
+                
+                <div class="form-group mt-4">
+                    <label for="address_line2" class="block text-sm font-medium text-gray-700 mb-1">Address Line 2 (Optional)</label>
+                    <input type="text" id="address_line2" name="address_line2" class="form-control">
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div class="form-group">
+                        <label for="city" class="block text-sm font-medium text-gray-700 mb-1 required-field">City</label>
+                        <input type="text" id="city" name="city" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="state" class="block text-sm font-medium text-gray-700 mb-1 required-field">State/Province</label>
+                        <input type="text" id="state" name="state" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="postal_code" class="block text-sm font-medium text-gray-700 mb-1 required-field">Postal Code</label>
+                        <input type="text" id="postal_code" name="postal_code" class="form-control" required>
+                    </div>
+                </div>
+                
+                <div class="form-group mt-4">
+                    <label for="country" class="block text-sm font-medium text-gray-700 mb-1 required-field">Country</label>
+                    <input type="text" id="country" name="country" class="form-control" required>
+                </div>
+                
+                <!-- Map for selecting home location -->
+                <div class="mt-6">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Confirm Your Location on Map</p>
+                    
+                    <div class="map-container">
+                        <div class="map-search-container">
+                            <input id="map-search-input" type="text" placeholder="Search for your address" class="w-full px-3 py-2 border border-gray-300 rounded">
+                        </div>
+                        <div id="home-map"></div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="form-group">
+                            <label for="latitude" class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+                            <input type="text" id="latitude" name="latitude" class="form-control" readonly>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="longitude" class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+                            <input type="text" id="longitude" name="longitude" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Terms and Conditions -->
+            <div class="form-section">
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="terms" name="terms" type="checkbox" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" required>
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="terms" class="font-medium text-gray-700">I agree to the <a href="{% url 'terms' %}" class="text-green-600 hover:text-green-700">Terms and Conditions</a> and <a href="{% url 'privacy' %}" class="text-green-600 hover:text-green-700">Privacy Policy</a></label>
+                        <p class="text-gray-500 mt-1">By registering, you agree to our terms and privacy policy, including our use of your location data for carbon credit calculations.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Submit Section -->
+            <div class="flex justify-end space-x-3 mt-8">
+                <a href="{% url 'login' %}" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">I already have an account</a>
+                <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Register</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Load Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPk6bXFiuQp0yEDvsTc0euHPz3TvuYPrQ&libraries=places"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the map
+    initMap();
+    
+    // Add event listeners for address fields
+    setupAddressAutoFill();
+});
+
+function initMap() {
+    // Default center (San Francisco)
+    const defaultLocation = { lat: 37.7749, lng: -122.4194 };
+    
+    // Create map
+    const map = new google.maps.Map(document.getElementById('home-map'), {
+        zoom: 13,
+        center: defaultLocation,
+        mapTypeControl: true,
+        streetViewControl: false,
+        fullscreenControl: true
+    });
+    
+    // Create marker for home location
+    const marker = new google.maps.Marker({
+        position: defaultLocation,
+        map: map,
+        draggable: true,
+        animation: google.maps.Animation.DROP,
+        title: 'Your Home Location'
+    });
+    
+    // Update latitude and longitude fields when marker is moved
+    google.maps.event.addListener(marker, 'dragend', function() {
+        updateCoordinates(marker.getPosition());
+        
+        // Reverse geocode to get address
+        reverseGeocode(marker.getPosition());
+    });
+    
+    // Set up the search box
+    const searchInput = document.getElementById('map-search-input');
+    const searchBox = new google.maps.places.SearchBox(searchInput);
+    
+    // Bias search results to current map view
+    map.addListener('bounds_changed', () => {
+        searchBox.setBounds(map.getBounds());
+    });
+    
+    // Listen for search box selections
+    searchBox.addListener('places_changed', () => {
+        const places = searchBox.getPlaces();
+        if (places.length === 0) return;
+        
+        const place = places[0];
+        if (!place.geometry || !place.geometry.location) return;
+        
+        // Set marker position to selected place
+        marker.setPosition(place.geometry.location);
+        map.setCenter(place.geometry.location);
+        map.setZoom(15);
+        
+        // Update coordinates and address fields
+        updateCoordinates(place.geometry.location);
+        fillAddressFromPlace(place);
+    });
+    
+    // Listen for click on map
+    map.addListener('click', (event) => {
+        marker.setPosition(event.latLng);
+        updateCoordinates(event.latLng);
+        
+        // Reverse geocode to get address
+        reverseGeocode(event.latLng);
+    });
+    
+    // Store map and marker in global scope for access
+    window.homeMap = map;
+    window.homeMarker = marker;
+}
+
+function updateCoordinates(position) {
+    document.getElementById('latitude').value = position.lat().toFixed(7);
+    document.getElementById('longitude').value = position.lng().toFixed(7);
+}
+
+function reverseGeocode(position) {
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({'location': position}, function(results, status) {
+        if (status === 'OK' && results[0]) {
+            fillAddressFromComponents(results[0].address_components);
+        }
+    });
+}
+
+function fillAddressFromPlace(place) {
+    if (place.address_components) {
+        fillAddressFromComponents(place.address_components);
+    }
+}
+
+function fillAddressFromComponents(components) {
+    let street_number = '';
+    let route = '';
+    let city = '';
+    let state = '';
+    let postal_code = '';
+    let country = '';
+    
+    // Extract address components
+    for (const component of components) {
+        const types = component.types;
+        
+        if (types.includes('street_number')) {
+            street_number = component.long_name;
+        } else if (types.includes('route')) {
+            route = component.long_name;
+        } else if (types.includes('locality')) {
+            city = component.long_name;
+        } else if (types.includes('administrative_area_level_1')) {
+            state = component.long_name;
+        } else if (types.includes('postal_code')) {
+            postal_code = component.long_name;
+        } else if (types.includes('country')) {
+            country = component.long_name;
+        }
+    }
+    
+    // Set address fields
+    if (street_number && route) {
+        document.getElementById('address_line1').value = street_number + ' ' + route;
+    }
+    
+    if (city) document.getElementById('city').value = city;
+    if (state) document.getElementById('state').value = state;
+    if (postal_code) document.getElementById('postal_code').value = postal_code;
+    if (country) document.getElementById('country').value = country;
+}
+
+function setupAddressAutoFill() {
+    // When user enters address manually, try to geocode it and update map
+    const addressFields = [
+        'address_line1', 'city', 'state', 'postal_code', 'country'
+    ];
+    
+    addressFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('blur', function() {
+                geocodeAddress();
+            });
+        }
+    });
+}
+
+function geocodeAddress() {
+    const address1 = document.getElementById('address_line1').value;
+    const city = document.getElementById('city').value;
+    const state = document.getElementById('state').value;
+    const postalCode = document.getElementById('postal_code').value;
+    const country = document.getElementById('country').value;
+    
+    // Only geocode if we have enough information
+    if (address1 && city && state) {
+        const address = `${address1}, ${city}, ${state} ${postalCode}, ${country}`;
+        
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({'address': address}, function(results, status) {
+            if (status === 'OK' && results[0] && results[0].geometry) {
+                const location = results[0].geometry.location;
+                
+                // Update map and marker
+                if (window.homeMap && window.homeMarker) {
+                    window.homeMap.setCenter(location);
+                    window.homeMap.setZoom(15);
+                    window.homeMarker.setPosition(location);
+                    
+                    // Update coordinate fields
+                    updateCoordinates(location);
+                }
+            }
+        });
+    }
+}
+</script>
+{% endblock %} 

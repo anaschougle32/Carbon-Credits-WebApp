@@ -80,6 +80,11 @@ class Trip(models.Model):
         null=True,
         blank=True
     )
+    duration_minutes = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Estimated travel time in minutes based on transport mode and distance"
+    )
     created_at = models.DateTimeField(default=timezone.now)
     
     def __str__(self):
