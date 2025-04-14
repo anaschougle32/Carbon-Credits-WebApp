@@ -58,26 +58,47 @@
     .transport-option {
         cursor: pointer;
         transition: all 0.3s ease;
+        border: 2px solid transparent;
+        position: relative;
+        overflow: hidden;
     }
     
     .transport-option:hover {
         background-color: #f0fdf4;
         border-color: #34d399;
+        transform: translateY(-2px);
     }
     
     .transport-option.selected {
-        background-color: #d1fae5;
+        background-color: #dcfce7;
         border-color: #10b981;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.5);
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+        transform: translateY(-2px);
     }
     
-    .transport-option.selected .transport-icon {
-        color: #10B981;
+    .transport-option.selected::after {
+        content: '✓';
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #10b981;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
     }
     
-    .transport-option.selected span {
+    .transport-option.selected .text-3xl {
+        color: #10b981;
+    }
+    
+    .transport-option.selected .font-semibold {
         color: #047857;
-        font-weight: 600;
     }
     
     .transport-icon {
@@ -111,35 +132,6 @@
         height: 400px;
         width: 100%;
         border-radius: 0.5rem;
-    }
-    
-    .transport-option {
-        transition: all 0.2s ease-in-out;
-    }
-    
-    .transport-option.selected {
-        background-color: #F0FDF4;
-        border-color: #4ADE80;
-    }
-    
-    .file-preview {
-        max-width: 100%;
-        max-height: 200px;
-        border-radius: 0.375rem;
-    }
-    
-    .file-upload-container {
-        border: 2px dashed #E5E7EB;
-        border-radius: 0.5rem;
-        padding: 2rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-    }
-    
-    .file-upload-container:hover {
-        border-color: #10B981;
-        background-color: #F0FDF4;
     }
     
     .progress-bar {
@@ -325,38 +317,70 @@
                 <h2 class="text-xl font-semibold mb-6">Transport Mode</h2>
                 <p class="text-sm text-gray-600 mb-4">Select how you commuted. Different modes earn different amounts of carbon credits.</p>
                 
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="public_transport">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="transport-options-container">
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" 
+                         data-mode="public_transport" tabindex="0" role="button"
+                         onclick="console.log('Direct onclick handler'); 
+                                 document.querySelectorAll('.transport-option').forEach(o => o.classList.remove('selected')); 
+                                 this.classList.add('selected'); 
+                                 document.getElementById('transport-mode').value = 'public_transport';">
                         <div class="text-3xl mb-2">🚆</div>
                         <div class="font-semibold">Public Transport</div>
                         <div class="text-sm text-green-600">+3 credits/km</div>
                     </div>
                     
-                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="bicycle">
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" 
+                         data-mode="bicycle" tabindex="0" role="button"
+                         onclick="console.log('Direct onclick handler'); 
+                                 document.querySelectorAll('.transport-option').forEach(o => o.classList.remove('selected')); 
+                                 this.classList.add('selected'); 
+                                 document.getElementById('transport-mode').value = 'bicycle';">
                         <div class="text-3xl mb-2">🚲</div>
                         <div class="font-semibold">Bicycle</div>
                         <div class="text-sm text-green-600">+5 credits/km</div>
                     </div>
                     
-                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="walking">
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" 
+                         data-mode="walking" tabindex="0" role="button"
+                         onclick="console.log('Direct onclick handler'); 
+                                 document.querySelectorAll('.transport-option').forEach(o => o.classList.remove('selected')); 
+                                 this.classList.add('selected'); 
+                                 document.getElementById('transport-mode').value = 'walking';">
                         <div class="text-3xl mb-2">🚶</div>
                         <div class="font-semibold">Walking</div>
                         <div class="text-sm text-green-600">+6 credits/km</div>
                     </div>
                     
-                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="carpool">
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" 
+                         data-mode="carpool" tabindex="0" role="button"
+                         onclick="console.log('Direct onclick handler'); 
+                                 document.querySelectorAll('.transport-option').forEach(o => o.classList.remove('selected')); 
+                                 this.classList.add('selected'); 
+                                 document.getElementById('transport-mode').value = 'carpool';">
                         <div class="text-3xl mb-2">🚗</div>
                         <div class="font-semibold">Carpool</div>
                         <div class="text-sm text-green-600">+2 credits/km</div>
                     </div>
                     
-                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="car">
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" 
+                         data-mode="car" tabindex="0" role="button"
+                         onclick="console.log('Direct onclick handler'); 
+                                 document.querySelectorAll('.transport-option').forEach(o => o.classList.remove('selected')); 
+                                 this.classList.add('selected'); 
+                                 document.getElementById('transport-mode').value = 'car';">
                         <div class="text-3xl mb-2">🚙</div>
                         <div class="font-semibold">Car (Single)</div>
                         <div class="text-sm text-green-600">+0.5 credits/km</div>
                     </div>
                     
-                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" data-mode="work_from_home">
+                    <div class="transport-option p-4 border border-gray-300 rounded-lg text-center cursor-pointer transition-all duration-300 hover:bg-green-50" 
+                         data-mode="work_from_home" tabindex="0" role="button"
+                         onclick="console.log('Direct onclick handler'); 
+                                 document.querySelectorAll('.transport-option').forEach(o => o.classList.remove('selected')); 
+                                 this.classList.add('selected'); 
+                                 document.getElementById('transport-mode').value = 'work_from_home';
+                                 document.getElementById('map-section').style.display = 'none';
+                                 document.getElementById('distance-km').value = '0';">
                         <div class="text-3xl mb-2">🏠</div>
                         <div class="font-semibold">Work from Home</div>
                         <div class="text-sm text-green-600">+10 credits</div>
@@ -422,11 +446,59 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Load Google Maps API with the provided API key -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDwWRoTtWgjQc--nP3WoZpH6IrpTQ9gw7w&libraries=places,geometry" async defer></script>
+<!-- Make sure the Google Maps API script is loaded properly -->
+<script>
+    // Check if the map script is loaded
+    function checkMapScriptLoaded() {
+        if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+            console.error('Google Maps API not loaded correctly!');
+        } else {
+            console.log('Google Maps API loaded successfully');
+        }
+    }
+    
+    // Add event listener to check after page load
+    window.addEventListener('load', function() {
+        setTimeout(checkMapScriptLoaded, 1000);
+    });
+</script>
+
+<!-- Load Google Maps API with the provided API key and callback -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDwWRoTtWgjQc--nP3WoZpH6IrpTQ9gw7w&libraries=places,geometry&callback=initMap" defer></script>
+
+<!-- Load our JavaScript files -->
 <script src="/static/js/trip-log.js"></script>
 <script src="/static/js/file-upload.js"></script>
 
 <!-- Include the file upload modal component -->
 {% include 'components/file_upload_modal.html' %}
+
+<!-- Minimal debug script just for adding click handlers as last resort -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Trip log page loaded - ensuring transport options are clickable');
+        
+        // Direct click handlers for transport options as a last resort
+        document.querySelectorAll('.transport-option').forEach(option => {
+            option.addEventListener('click', function() {
+                console.log('Transport option clicked via backup handler:', this.getAttribute('data-mode'));
+                
+                // Remove selected class from all options
+                document.querySelectorAll('.transport-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                
+                // Add selected class to clicked option
+                this.classList.add('selected');
+                
+                // Set transport mode value
+                const transportMode = this.getAttribute('data-mode');
+                const transportInput = document.getElementById('transport-mode');
+                if (transportInput) {
+                    transportInput.value = transportMode;
+                }
+            });
+        });
+    });
+</script>
 {% endblock %} 

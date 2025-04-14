@@ -87,7 +87,7 @@ urlpatterns = [
     path('dashboard/', dashboard_redirect, name='dashboard'),
     
     # Include app-specific template URLs
-    path('admin/dashboard/', include('core.admin_urls')),  # Custom admin views
+    path('systemadmin/', include('core.admin_urls')),  # Custom admin views
     path('bank/', include('core.bank_urls')),
     path('employer/', include('core.employer_urls')),
     path('employee/', include('core.employee_urls')),

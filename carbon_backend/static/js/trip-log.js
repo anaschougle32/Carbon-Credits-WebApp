@@ -5,35 +5,100 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup transport mode selection
     setupTransportOptions();
     
-    // If Google Maps API is loaded, initialize the map
-    if (typeof google !== 'undefined' && google.maps) {
-        initMap();
+    // Additional direct event handling for transport options - using event delegation
+    const optionsContainer = document.getElementById('transport-options-container');
+    if (optionsContainer) {
+        optionsContainer.addEventListener('click', function(e) {
+            // Find the closest transport option
+            const option = e.target.closest('.transport-option');
+            if (option) {
+                const transportMode = option.getAttribute('data-mode');
+                console.log("Direct click handler triggered for:", transportMode);
+                
+                // Clear all selections
+                document.querySelectorAll('.transport-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                
+                // Set this option as selected
+                option.classList.add('selected');
+                
+                // Update form value
+                const transportInput = document.getElementById('transport-mode');
+                if (transportInput) {
+                    transportInput.value = transportMode;
+                    console.log("Set transport mode to:", transportMode);
+                    
+                    // Special handling for work from home
+                    if (transportMode === 'work_from_home') {
+                        const mapSection = document.getElementById('map-section');
+                        if (mapSection) mapSection.style.display = 'none';
+                        
+                        const distanceInput = document.getElementById('distance-km');
+                        if (distanceInput) distanceInput.value = '0';
+                        
+                        updateTripPreview(0, 0);
+                    } else {
+                        const mapSection = document.getElementById('map-section');
+                        if (mapSection) mapSection.style.display = 'block';
+                        
+                        calculateRouteIfPossible();
+                    }
+                }
+            }
+        });
     }
+    
+    // We don't initialize the map here anymore - it will be called by the callback
 });
 
 // Set up transport option clicks
 function setupTransportOptions() {
+    console.log("Setting up transport options");
     const transportOptions = document.querySelectorAll('.transport-option');
+    
+    if (transportOptions.length === 0) {
+        console.warn("No transport options found");
+        return;
+    }
+    
+    console.log(`Found ${transportOptions.length} transport options`);
+    
     transportOptions.forEach(option => {
-        option.addEventListener('click', function() {
+        option.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("Transport option clicked:", this.getAttribute('data-mode'));
+            
             // Remove selected class from all options
-            transportOptions.forEach(opt => opt.classList.remove('selected'));
+            transportOptions.forEach(opt => {
+                opt.classList.remove('selected');
+            });
             
             // Add selected class to clicked option
             this.classList.add('selected');
             
             // Update hidden input with selected transport mode
             const transportMode = this.getAttribute('data-mode');
-            document.getElementById('transport-mode').value = transportMode;
+            const transportModeInput = document.getElementById('transport-mode');
+            
+            if (!transportModeInput) {
+                console.error("Transport mode input not found");
+                return;
+            }
+            
+            transportModeInput.value = transportMode;
             console.log("Selected transport mode:", transportMode);
             
             // Special handling for work from home
+            const mapSection = document.getElementById('map-section');
+            const distanceInput = document.getElementById('distance-km');
+            
             if (transportMode === 'work_from_home') {
-                document.getElementById('map-section').style.display = 'none';
-                document.getElementById('distance-km').value = '0';
+                if (mapSection) mapSection.style.display = 'none';
+                if (distanceInput) distanceInput.value = '0';
                 updateTripPreview(0, 0);
             } else {
-                document.getElementById('map-section').style.display = 'block';
+                if (mapSection) mapSection.style.display = 'block';
                 calculateRouteIfPossible();
             }
         });
@@ -394,5 +459,6 @@ function updateTripPreview(distance, duration) {
     document.getElementById('preview-credits').textContent = totalCredits + ' credits';
 }
 
-// Make initMap global for Google Maps API callback
-window.initMap = initMap; 
+// Make sure initMap is available globally for Google Maps API callback
+window.initMap = initMap;
+console.log("initMap function exported to window:", typeof window.initMap === 'function' ? 'YES' : 'NO'); 
