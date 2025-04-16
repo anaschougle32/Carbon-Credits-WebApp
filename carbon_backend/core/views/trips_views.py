@@ -9,6 +9,7 @@ import uuid
 
 from users.models import CustomUser, EmployeeProfile, Location
 from trips.models import Trip, CarbonCredit
+from django.conf import settings
 
 # Constants for carbon credit calculations
 CREDIT_RATES = {
@@ -39,6 +40,27 @@ TRANSPORT_SPEEDS = {
     'walking': 5,  # 5 km/h for walking
     'work_from_home': 0,  # No travel time for work from home
 }
+
+import requests
+
+def get_distance(origin, destination):
+    """Get distance between two locations using Google Maps API."""
+
+    API_KEY = settings.GOOGLE_MAPS_API_KEY
+
+    url = f"https://maps.googleapis.com/maps/api/directions/json?origin={origin}&destination={destination}&key={API_KEY}"
+
+    response = requests.get(url)
+    data = response.json()
+    print("Response data:", data)
+
+    if data['status'] == 'OK':
+        distance = data['routes'][0]['legs'][0]['distance']['text']
+        print(f"Distance: {distance}")
+        return distance
+    else:
+        print("Error:", data['status'])
+        return 460
 
 @login_required
 @user_passes_test(lambda u: u.is_employee)
@@ -147,7 +169,12 @@ def create_trip(request):
                 return redirect('employee_trip_log')
         
         # Get distance
-        distance_km = request.POST.get('distance_km')
+        # distance_km = request.POST.get('distance_km')
+        distance_km = get_distance(
+            (start_location.latitude, start_location.longitude),
+            (end_location.latitude, end_location.longitude),
+        )
+
         if not distance_km and transport_mode != 'work_from_home':
             messages.error(request, "Trip distance is required.")
             return redirect('employee_trip_log')
@@ -181,7 +208,7 @@ def create_trip(request):
             end_time=trip_end,
             transport_mode=transport_mode,
             distance_km=distance_decimal,
-            status='completed'
+            # status='completed'
         )
         
         # Calculate carbon savings based on transport mode and distance
