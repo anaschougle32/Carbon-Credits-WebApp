@@ -46,8 +46,10 @@ import requests
 def get_distance(origin, destination):
     """Get distance between two locations using Google Maps API."""
 
-    API_KEY = settings.GOOGLE_MAPS_API_KEY
-
+    API_KEY = 'AIzaSyDwWRoTtWgjQc--nP3WoZpH6IrpTQ9gw7w'
+    origin = "40.748817,-73.985428"      # NYC
+    destination = "40.730610,-73.935242" # NYC
+    
     url = f"https://maps.googleapis.com/maps/api/directions/json?origin={origin}&destination={destination}&key={API_KEY}"
 
     response = requests.get(url)
