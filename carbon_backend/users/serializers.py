@@ -82,13 +82,7 @@ class EmployeeRegistrationSerializer(serializers.Serializer):
     """Serializer for employee registration."""
     
     # User fields
-    email = serializers.EmailField()
-    username = serializers.CharField(max_length=150)
-    password = serializers.CharField(min_length=8, write_only=True)
-    first_name = serializers.CharField(max_length=150)
-    last_name = serializers.CharField(max_length=150)
-    
-    # Employee profile fields
+    user = UserSerializer()
     employer_id = serializers.IntegerField()
     
     # Home location fields

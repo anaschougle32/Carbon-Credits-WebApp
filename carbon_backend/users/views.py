@@ -277,3 +277,12 @@ class LocationDetailView(generics.RetrieveUpdateDestroyAPIView):
             )
         
         return Location.objects.none()
+
+
+class PendingApprovalView(APIView):
+    """View for displaying the pending approval page."""
+    
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        return render(request, 'registration/pending_approval.html')

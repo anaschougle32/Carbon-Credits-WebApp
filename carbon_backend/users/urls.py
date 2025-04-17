@@ -11,6 +11,7 @@ urlpatterns = [
     path('register/', views.RegisterView.as_view(), name='register'),
     path('employers/register/', views.EmployerRegistrationView.as_view(), name='employer_register'),
     path('employees/register/', views.EmployeeRegistrationView.as_view(), name='employee_register'),
+    path('registration/pending-approval/', views.PendingApprovalView.as_view(), name='pending_approval'),
     
     # Employer management endpoints
     path('employers/', views.EmployerListView.as_view(), name='employer_list'),

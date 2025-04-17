@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Register as Employee - Carbon Credits Platform{% endblock %}
 
@@ -59,8 +60,10 @@
     }
     
     #home-map {
-        height: 100%;
+        height: 300px;
         width: 100%;
+        margin-bottom: 1rem;
+        border-radius: 0.25rem;
     }
     
     .map-search-container {
@@ -73,6 +76,10 @@
         padding: 10px;
         border-radius: 4px;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+    
+    .invalid-feedback {
+        display: block;
     }
 </style>
 {% endblock %}
@@ -103,7 +110,7 @@
 
     <!-- Registration Form -->
     <div class="modern-card p-6 mb-8">
-        <form method="post" action="{% url 'employee_register' %}">
+        <form id="employeeRegistrationForm" method="post" action="{% url 'register_employee' %}">
             {% csrf_token %}
             
             <!-- Account Information Section -->
@@ -112,34 +119,47 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="form-group">
-                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1 required-field">Email Address</label>
-                        <input type="email" id="email" name="email" class="form-control" required>
+                        <label for="id_email" class="block text-sm font-medium text-gray-700 mb-1 required-field">Email Address</label>
+                        {{ form.email }}
+                        <div class="invalid-feedback">Please enter a valid email address.</div>
                         {% if form.email.errors %}
                         <p class="error-message">{{ form.email.errors|join:", " }}</p>
                         {% endif %}
                     </div>
                     
                     <div class="form-group">
-                        <label for="password" class="block text-sm font-medium text-gray-700 mb-1 required-field">Password</label>
-                        <input type="password" id="password" name="password" class="form-control" required>
-                        {% if form.password.errors %}
-                        <p class="error-message">{{ form.password.errors|join:", " }}</p>
+                        <label for="id_username" class="block text-sm font-medium text-gray-700 mb-1 required-field">Username</label>
+                        {{ form.username }}
+                        <div class="invalid-feedback">Please choose a username.</div>
+                        {% if form.username.errors %}
+                        <p class="error-message">{{ form.username.errors|join:", " }}</p>
                         {% endif %}
                     </div>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="form-group">
-                        <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1 required-field">First Name</label>
-                        <input type="text" id="first_name" name="first_name" class="form-control" required>
+                        <label for="id_password" class="block text-sm font-medium text-gray-700 mb-1 required-field">Password</label>
+                        {{ form.password }}
+                        <div class="invalid-feedback">Please enter a password.</div>
+                        {% if form.password.errors %}
+                        <p class="error-message">{{ form.password.errors|join:", " }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="id_first_name" class="block text-sm font-medium text-gray-700 mb-1 required-field">First Name</label>
+                        {{ form.first_name }}
+                        <div class="invalid-feedback">Please enter your first name.</div>
                         {% if form.first_name.errors %}
                         <p class="error-message">{{ form.first_name.errors|join:", " }}</p>
                         {% endif %}
                     </div>
                     
                     <div class="form-group">
-                        <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1 required-field">Last Name</label>
-                        <input type="text" id="last_name" name="last_name" class="form-control" required>
+                        <label for="id_last_name" class="block text-sm font-medium text-gray-700 mb-1 required-field">Last Name</label>
+                        {{ form.last_name }}
+                        <div class="invalid-feedback">Please enter your last name.</div>
                         {% if form.last_name.errors %}
                         <p class="error-message">{{ form.last_name.errors|join:", " }}</p>
                         {% endif %}
@@ -152,13 +172,9 @@
                 <h2 class="text-xl font-semibold mb-4">Employer Information</h2>
                 
                 <div class="form-group">
-                    <label for="employer" class="block text-sm font-medium text-gray-700 mb-1 required-field">Select Your Employer</label>
-                    <select id="employer" name="employer" class="form-control" required>
-                        <option value="">-- Select an employer --</option>
-                        {% for employer in employers %}
-                            <option value="{{ employer.id }}">{{ employer.company_name }}</option>
-                        {% endfor %}
-                    </select>
+                    <label for="id_employer" class="block text-sm font-medium text-gray-700 mb-1 required-field">Select Your Employer</label>
+                    {{ form.employer }}
+                    <div class="invalid-feedback">Please select your employer.</div>
                     {% if form.employer.errors %}
                     <p class="error-message">{{ form.employer.errors|join:", " }}</p>
                     {% endif %}
@@ -170,8 +186,8 @@
                 </div>
                 
                 <div class="form-group mt-4">
-                    <label for="employee_id" class="block text-sm font-medium text-gray-700 mb-1">Employee ID (Optional)</label>
-                    <input type="text" id="employee_id" name="employee_id" class="form-control">
+                    <label for="id_employee_id" class="block text-sm font-medium text-gray-700 mb-1">Employee ID (Optional)</label>
+                    {{ form.employee_id }}
                     <p class="text-sm text-gray-500 mt-1">If your employer requires an employee ID for verification.</p>
                 </div>
             </div>
@@ -184,36 +200,16 @@
                 </p>
                 
                 <div class="form-group">
-                    <label for="address_line1" class="block text-sm font-medium text-gray-700 mb-1 required-field">Address Line 1</label>
-                    <input type="text" id="address_line1" name="address_line1" class="form-control" required>
+                    <label for="id_home_address" class="block text-sm font-medium text-gray-700 mb-1 required-field">Address</label>
+                    {{ form.home_address }}
+                    <div class="invalid-feedback">Please enter your home address.</div>
+                    {% if form.home_address.errors %}
+                    <p class="error-message">{{ form.home_address.errors|join:", " }}</p>
+                    {% endif %}
                 </div>
                 
-                <div class="form-group mt-4">
-                    <label for="address_line2" class="block text-sm font-medium text-gray-700 mb-1">Address Line 2 (Optional)</label>
-                    <input type="text" id="address_line2" name="address_line2" class="form-control">
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    <div class="form-group">
-                        <label for="city" class="block text-sm font-medium text-gray-700 mb-1 required-field">City</label>
-                        <input type="text" id="city" name="city" class="form-control" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="state" class="block text-sm font-medium text-gray-700 mb-1 required-field">State/Province</label>
-                        <input type="text" id="state" name="state" class="form-control" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="postal_code" class="block text-sm font-medium text-gray-700 mb-1 required-field">Postal Code</label>
-                        <input type="text" id="postal_code" name="postal_code" class="form-control" required>
-                    </div>
-                </div>
-                
-                <div class="form-group mt-4">
-                    <label for="country" class="block text-sm font-medium text-gray-700 mb-1 required-field">Country</label>
-                    <input type="text" id="country" name="country" class="form-control" required>
-                </div>
+                {{ form.home_latitude }}
+                {{ form.home_longitude }}
                 
                 <!-- Map for selecting home location -->
                 <div class="mt-6">
@@ -225,18 +221,6 @@
                         </div>
                         <div id="home-map"></div>
                     </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mt-4">
-                        <div class="form-group">
-                            <label for="latitude" class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                            <input type="text" id="latitude" name="latitude" class="form-control" readonly>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="longitude" class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                            <input type="text" id="longitude" name="longitude" class="form-control" readonly>
-                        </div>
-                    </div>
                 </div>
             </div>
             
@@ -244,10 +228,10 @@
             <div class="form-section">
                 <div class="flex items-start">
                     <div class="flex items-center h-5">
-                        <input id="terms" name="terms" type="checkbox" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" required>
+                        {{ form.terms }}
                     </div>
                     <div class="ml-3 text-sm">
-                        <label for="terms" class="font-medium text-gray-700">I agree to the <a href="{% url 'terms' %}" class="text-green-600 hover:text-green-700">Terms and Conditions</a> and <a href="{% url 'privacy' %}" class="text-green-600 hover:text-green-700">Privacy Policy</a></label>
+                        <label for="id_terms" class="font-medium text-gray-700">I agree to the <a href="{% url 'terms' %}" class="text-green-600 hover:text-green-700">Terms and Conditions</a> and <a href="{% url 'privacy' %}" class="text-green-600 hover:text-green-700">Privacy Policy</a></label>
                         <p class="text-gray-500 mt-1">By registering, you agree to our terms and privacy policy, including our use of your location data for carbon credit calculations.</p>
                     </div>
                 </div>
@@ -263,192 +247,7 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
-<!-- Load Google Maps API -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPk6bXFiuQp0yEDvsTc0euHPz3TvuYPrQ&libraries=places"></script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize the map
-    initMap();
-    
-    // Add event listeners for address fields
-    setupAddressAutoFill();
-});
-
-function initMap() {
-    // Default center (San Francisco)
-    const defaultLocation = { lat: 37.7749, lng: -122.4194 };
-    
-    // Create map
-    const map = new google.maps.Map(document.getElementById('home-map'), {
-        zoom: 13,
-        center: defaultLocation,
-        mapTypeControl: true,
-        streetViewControl: false,
-        fullscreenControl: true
-    });
-    
-    // Create marker for home location
-    const marker = new google.maps.Marker({
-        position: defaultLocation,
-        map: map,
-        draggable: true,
-        animation: google.maps.Animation.DROP,
-        title: 'Your Home Location'
-    });
-    
-    // Update latitude and longitude fields when marker is moved
-    google.maps.event.addListener(marker, 'dragend', function() {
-        updateCoordinates(marker.getPosition());
-        
-        // Reverse geocode to get address
-        reverseGeocode(marker.getPosition());
-    });
-    
-    // Set up the search box
-    const searchInput = document.getElementById('map-search-input');
-    const searchBox = new google.maps.places.SearchBox(searchInput);
-    
-    // Bias search results to current map view
-    map.addListener('bounds_changed', () => {
-        searchBox.setBounds(map.getBounds());
-    });
-    
-    // Listen for search box selections
-    searchBox.addListener('places_changed', () => {
-        const places = searchBox.getPlaces();
-        if (places.length === 0) return;
-        
-        const place = places[0];
-        if (!place.geometry || !place.geometry.location) return;
-        
-        // Set marker position to selected place
-        marker.setPosition(place.geometry.location);
-        map.setCenter(place.geometry.location);
-        map.setZoom(15);
-        
-        // Update coordinates and address fields
-        updateCoordinates(place.geometry.location);
-        fillAddressFromPlace(place);
-    });
-    
-    // Listen for click on map
-    map.addListener('click', (event) => {
-        marker.setPosition(event.latLng);
-        updateCoordinates(event.latLng);
-        
-        // Reverse geocode to get address
-        reverseGeocode(event.latLng);
-    });
-    
-    // Store map and marker in global scope for access
-    window.homeMap = map;
-    window.homeMarker = marker;
-}
-
-function updateCoordinates(position) {
-    document.getElementById('latitude').value = position.lat().toFixed(7);
-    document.getElementById('longitude').value = position.lng().toFixed(7);
-}
-
-function reverseGeocode(position) {
-    const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({'location': position}, function(results, status) {
-        if (status === 'OK' && results[0]) {
-            fillAddressFromComponents(results[0].address_components);
-        }
-    });
-}
-
-function fillAddressFromPlace(place) {
-    if (place.address_components) {
-        fillAddressFromComponents(place.address_components);
-    }
-}
-
-function fillAddressFromComponents(components) {
-    let street_number = '';
-    let route = '';
-    let city = '';
-    let state = '';
-    let postal_code = '';
-    let country = '';
-    
-    // Extract address components
-    for (const component of components) {
-        const types = component.types;
-        
-        if (types.includes('street_number')) {
-            street_number = component.long_name;
-        } else if (types.includes('route')) {
-            route = component.long_name;
-        } else if (types.includes('locality')) {
-            city = component.long_name;
-        } else if (types.includes('administrative_area_level_1')) {
-            state = component.long_name;
-        } else if (types.includes('postal_code')) {
-            postal_code = component.long_name;
-        } else if (types.includes('country')) {
-            country = component.long_name;
-        }
-    }
-    
-    // Set address fields
-    if (street_number && route) {
-        document.getElementById('address_line1').value = street_number + ' ' + route;
-    }
-    
-    if (city) document.getElementById('city').value = city;
-    if (state) document.getElementById('state').value = state;
-    if (postal_code) document.getElementById('postal_code').value = postal_code;
-    if (country) document.getElementById('country').value = country;
-}
-
-function setupAddressAutoFill() {
-    // When user enters address manually, try to geocode it and update map
-    const addressFields = [
-        'address_line1', 'city', 'state', 'postal_code', 'country'
-    ];
-    
-    addressFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.addEventListener('blur', function() {
-                geocodeAddress();
-            });
-        }
-    });
-}
-
-function geocodeAddress() {
-    const address1 = document.getElementById('address_line1').value;
-    const city = document.getElementById('city').value;
-    const state = document.getElementById('state').value;
-    const postalCode = document.getElementById('postal_code').value;
-    const country = document.getElementById('country').value;
-    
-    // Only geocode if we have enough information
-    if (address1 && city && state) {
-        const address = `${address1}, ${city}, ${state} ${postalCode}, ${country}`;
-        
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({'address': address}, function(results, status) {
-            if (status === 'OK' && results[0] && results[0].geometry) {
-                const location = results[0].geometry.location;
-                
-                // Update map and marker
-                if (window.homeMap && window.homeMarker) {
-                    window.homeMap.setCenter(location);
-                    window.homeMap.setZoom(15);
-                    window.homeMarker.setPosition(location);
-                    
-                    // Update coordinate fields
-                    updateCoordinates(location);
-                }
-            }
-        });
-    }
-}
-</script>
+{% block extra_js %}
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDwWRoTtWgjQc--nP3WoZpH6IrpTQ9gw7w&libraries=places"></script>
+<script src="{% static 'js/employee-registration.js' %}"></script>
 {% endblock %} 
