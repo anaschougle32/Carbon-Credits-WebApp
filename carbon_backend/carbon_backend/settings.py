@@ -31,8 +31,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-agpy(rifm75@&m$ws!1g2f4y*p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'carbon-credits.onrender.com,localhost,127.0.0.1,testserver').split(',')
-
+# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'carbon-credits.onrender.com,localhost,127.0.0.1,testserver').split(',')
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_extensions',
     'django_htmx',
+    'whitenoise',
     
     # Project apps
     'users',
@@ -61,6 +62,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # CORS middleware
     'django.middleware.common.CommonMiddleware',
@@ -206,3 +208,10 @@ GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyA-test-key-for-dev
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+STORAGES = {
+    # ...
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
