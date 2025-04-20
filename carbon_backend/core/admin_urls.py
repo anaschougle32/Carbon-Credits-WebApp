@@ -13,8 +13,16 @@ urlpatterns = [
     path('users/<int:user_id>/reject/', admin_views.reject_user, name='admin_reject_user'),
     path('users/hierarchy/', admin_views.user_hierarchy, name='admin_user_hierarchy'),
     
+    # Employer management
+    path('employers/', admin_views.employers_list, name='admin_employers'),
+    
     # Reports
     path('reports/', admin_views.reports, name='admin_reports'),
+    
+    # Profile
+    path('profile/', admin_views.admin_profile, name='admin_profile'),
+    path('profile/update/', admin_views.admin_update_profile, name='admin_update_profile'),
+    path('profile/change-password/', admin_views.admin_change_password, name='admin_change_password'),
     
     # Dashboard components that load dynamically
     path('recent-trips/', admin_views.dashboard_recent_trips, name='admin_dashboard_recent_trips'),

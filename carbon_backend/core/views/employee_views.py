@@ -6,6 +6,11 @@ from django.contrib import messages
 from decimal import Decimal
 from users.models import Location
 from .trips_views import create_trip
+from django.core.paginator import Paginator
+from django.db.models import Q
+from trips.models import CarbonCredit, Trip
+from django.conf import settings
+from users.models import CustomUser
 
 @login_required
 @user_passes_test(lambda u: u.is_employee)
@@ -223,4 +228,258 @@ def manage_home_location(request):
         'has_home_location': has_home_location,
     }
     
-    return render(request, 'employee/manage_home_location.html', context) 
+    return render(request, 'employee/manage_home_location.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_employee)
+def profile(request):
+    """View for employee profile page."""
+    # Get the employee profile and stats
+    employee_profile = getattr(request.user, 'employee_profile', None)
+    
+    # Get home location
+    home_location = Location.objects.filter(
+        created_by=request.user,
+        location_type='home'
+    ).first()
+    
+    # Get employee stats
+    stats = {
+        'total_credits': 0,
+        'redeemed_credits': 0,
+        'available_credits': 0,
+        'total_trips': 0,
+        'co2_saved': 0
+    }
+    
+    if employee_profile:
+        # Get trips
+        trips = Trip.objects.filter(employee=employee_profile)
+        total_trips = trips.count()
+        
+        # Carbon credits
+        total_credits = CarbonCredit.objects.filter(
+            owner_type='employee',
+            owner_id=employee_profile.id
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        redeemed_credits = CarbonCredit.objects.filter(
+            owner_type='employee',
+            owner_id=employee_profile.id,
+            status='redeemed'
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        # CO2 saved
+        co2_saved = trips.aggregate(Sum('carbon_savings'))['carbon_savings__sum'] or 0
+        
+        stats = {
+            'total_credits': total_credits,
+            'redeemed_credits': redeemed_credits,
+            'available_credits': total_credits - redeemed_credits,
+            'total_trips': total_trips,
+            'co2_saved': co2_saved
+        }
+    
+    # Maps API key for displaying maps
+    google_maps_api_key = settings.GOOGLE_MAPS_API_KEY
+    
+    context = {
+        'page_title': 'Employee Profile',
+        'user': request.user,
+        'employee_profile': employee_profile,
+        'home_location': home_location,
+        'stats': stats,
+        'google_maps_api_key': google_maps_api_key
+    }
+    return render(request, 'employee/profile.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_employee)
+def update_profile(request):
+    """Handle employee profile updates."""
+    if request.method == 'POST':
+        # Get form data
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        
+        # Validate email format
+        if not email or '@' not in email:
+            messages.error(request, "Please provide a valid email address.")
+            return redirect('employee_profile')
+        
+        # Check if email is already in use by another user
+        if CustomUser.objects.exclude(id=request.user.id).filter(email=email).exists():
+            messages.error(request, "This email is already in use by another user.")
+            return redirect('employee_profile')
+        
+        # Update user data
+        user = request.user
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email
+        user.save()
+        
+        messages.success(request, "Profile updated successfully.")
+        return redirect('employee_profile')
+    
+    # For GET requests, redirect to profile page
+    return redirect('employee_profile')
+
+@login_required
+@user_passes_test(lambda u: u.is_employee)
+def update_home_location(request):
+    """Handle updating home location."""
+    if request.method == 'POST':
+        # Get form data
+        address = request.POST.get('address')
+        latitude = request.POST.get('latitude')
+        longitude = request.POST.get('longitude')
+        
+        # Validate data
+        if not address or not latitude or not longitude:
+            messages.error(request, "Please provide complete location information.")
+            return redirect('employee_profile')
+        
+        try:
+            # Check if home location exists
+            home_location = Location.objects.filter(
+                created_by=request.user,
+                location_type='home'
+            ).first()
+            
+            if home_location:
+                # Update existing location
+                home_location.address = address
+                home_location.latitude = Decimal(latitude)
+                home_location.longitude = Decimal(longitude)
+                home_location.save()
+            else:
+                # Create new home location
+                home_location = Location.objects.create(
+                    created_by=request.user,
+                    name="Home",
+                    address=address,
+                    latitude=Decimal(latitude),
+                    longitude=Decimal(longitude),
+                    location_type='home',
+                    is_primary=True,
+                    employee=request.user.employee_profile
+                )
+            
+            messages.success(request, "Home location updated successfully.")
+        except Exception as e:
+            messages.error(request, f"Error updating home location: {str(e)}")
+        
+        return redirect('employee_profile')
+    
+    # For GET requests, show a form to update home location
+    # Get current home location
+    home_location = Location.objects.filter(
+        created_by=request.user,
+        location_type='home'
+    ).first()
+    
+    # Maps API key for displaying maps
+    google_maps_api_key = settings.GOOGLE_MAPS_API_KEY
+    
+    context = {
+        'page_title': 'Update Home Location',
+        'home_location': home_location,
+        'google_maps_api_key': google_maps_api_key
+    }
+    return render(request, 'employee/update_home_location.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_employee)
+def change_password(request):
+    """Handle employee password changes."""
+    if request.method == 'POST':
+        # Get form data
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        # Validate passwords
+        if not current_password or not new_password or not confirm_password:
+            messages.error(request, "Please fill in all password fields.")
+            return redirect('employee_profile')
+        
+        if new_password != confirm_password:
+            messages.error(request, "New passwords do not match.")
+            return redirect('employee_profile')
+        
+        # Check current password
+        if not request.user.check_password(current_password):
+            messages.error(request, "Current password is incorrect.")
+            return redirect('employee_profile')
+        
+        # Change password
+        request.user.set_password(new_password)
+        request.user.save()
+        
+        # Update session to prevent logout
+        from django.contrib.auth import update_session_auth_hash
+        update_session_auth_hash(request, request.user)
+        
+        messages.success(request, "Password changed successfully.")
+        return redirect('employee_profile')
+    
+    # For GET requests, redirect to profile page
+    return redirect('employee_profile')
+
+@login_required
+@user_passes_test(lambda u: u.is_employee)
+def marketplace(request):
+    """View for employee marketplace to sell carbon credits."""
+    # Get employee profile
+    employee_profile = request.user.employee_profile
+    
+    # Get available credits
+    from marketplace.models import Transaction
+    
+    total_credits = CarbonCredit.objects.filter(
+        owner_type='employee',
+        owner_id=employee_profile.id
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    sold_credits = CarbonCredit.objects.filter(
+        owner_type='employee',
+        owner_id=employee_profile.id,
+        status='sold'
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    redeemed_credits = CarbonCredit.objects.filter(
+        owner_type='employee',
+        owner_id=employee_profile.id,
+        status='redeemed'
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # Calculate available credits
+    available_credits = total_credits - sold_credits - redeemed_credits
+    
+    # Get transaction history
+    transactions = Transaction.objects.filter(
+        Q(seller_type='employee', seller_id=employee_profile.id) |
+        Q(buyer_type='employee', buyer_id=employee_profile.id)
+    ).order_by('-created_at')
+    
+    # Get market info (average price)
+    market_avg_price = Transaction.objects.filter(
+        status='completed'
+    ).aggregate(Avg('price_per_credit'))['price_per_credit__avg'] or 0
+    
+    # Paginate transactions
+    paginator = Paginator(transactions, 10)
+    page_number = request.GET.get('page', 1)
+    transactions_page = paginator.get_page(page_number)
+    
+    context = {
+        'page_title': 'Employee Marketplace',
+        'employee_profile': employee_profile,
+        'available_credits': available_credits,
+        'market_avg_price': market_avg_price,
+        'transactions': transactions_page
+    }
+    
+    return render(request, 'employee/marketplace.html', context) 

@@ -9,6 +9,7 @@ from django.db.models import Sum, Count, Avg, Case, When, Value, IntegerField, F
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib import messages
+from django.core.paginator import Paginator
 
 @login_required
 @user_passes_test(lambda u: u.is_bank_admin)
@@ -418,4 +419,148 @@ def buy_credits(request):
         except Exception as e:
             messages.error(request, f"An error occurred: {str(e)}")
     
-    return redirect('bank:bank_trading') 
+    return redirect('bank:bank_trading')
+
+# Profile views
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def profile(request):
+    """View for bank admin profile page."""
+    # Get the bank profile associated with this user
+    bank_profile = getattr(request.user, 'bank_profile', None)
+    
+    context = {
+        'page_title': 'Bank Admin Profile',
+        'user': request.user,
+        'bank_profile': bank_profile,
+    }
+    return render(request, 'bank/profile.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def update_profile(request):
+    """Handle bank admin profile updates."""
+    if request.method == 'POST':
+        # Get form data
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        bank_name = request.POST.get('bank_name')
+        
+        # Validate email format
+        if not email or '@' not in email:
+            messages.error(request, "Please provide a valid email address.")
+            return redirect('bank:profile')
+        
+        # Check if email is already in use by another user
+        if CustomUser.objects.exclude(id=request.user.id).filter(email=email).exists():
+            messages.error(request, "This email is already in use by another user.")
+            return redirect('bank:profile')
+        
+        # Update user data
+        user = request.user
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email
+        user.save()
+        
+        # Update bank profile if it exists
+        bank_profile = getattr(user, 'bank_profile', None)
+        if bank_profile and bank_name:
+            bank_profile.bank_name = bank_name
+            bank_profile.save()
+        
+        messages.success(request, "Profile updated successfully.")
+        return redirect('bank:profile')
+    
+    # For GET requests, redirect to profile page
+    return redirect('bank:profile')
+
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def change_password(request):
+    """Handle bank admin password changes."""
+    if request.method == 'POST':
+        # Get form data
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        # Validate passwords
+        if not current_password or not new_password or not confirm_password:
+            messages.error(request, "Please fill in all password fields.")
+            return redirect('bank:profile')
+        
+        if new_password != confirm_password:
+            messages.error(request, "New passwords do not match.")
+            return redirect('bank:profile')
+        
+        # Check current password
+        if not request.user.check_password(current_password):
+            messages.error(request, "Current password is incorrect.")
+            return redirect('bank:profile')
+        
+        # Change password
+        request.user.set_password(new_password)
+        request.user.save()
+        
+        # Update session to prevent logout
+        from django.contrib.auth import update_session_auth_hash
+        update_session_auth_hash(request, request.user)
+        
+        messages.success(request, "Password changed successfully.")
+        return redirect('bank:profile')
+    
+    # For GET requests, redirect to profile page
+    return redirect('bank:profile')
+
+# Transactions view
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def transactions(request):
+    """View for bank transactions page."""
+    # Filter parameters
+    status_filter = request.GET.get('status', '')
+    type_filter = request.GET.get('type', '')
+    sort_by = request.GET.get('sort', 'date')
+    sort_dir = request.GET.get('dir', 'desc')
+    
+    # Get all transactions
+    from marketplace.models import Transaction
+    transactions_qs = Transaction.objects.all()
+    
+    # Apply filters
+    if status_filter:
+        transactions_qs = transactions_qs.filter(status=status_filter)
+    
+    if type_filter:
+        transactions_qs = transactions_qs.filter(transaction_type=type_filter)
+    
+    # Apply sorting
+    if sort_by == 'date':
+        order_field = 'created_at' if sort_dir == 'asc' else '-created_at'
+    elif sort_by == 'amount':
+        order_field = 'credit_amount' if sort_dir == 'asc' else '-credit_amount'
+    elif sort_by == 'price':
+        order_field = 'price_per_credit' if sort_dir == 'asc' else '-price_per_credit'
+    else:
+        order_field = '-created_at'  # Default sorting
+    
+    transactions_qs = transactions_qs.order_by(order_field)
+    
+    # Pagination
+    paginator = Paginator(transactions_qs, 10)
+    page_number = request.GET.get('page', 1)
+    transactions_page = paginator.get_page(page_number)
+    
+    # Context
+    context = {
+        'page_title': 'Carbon Credit Transactions',
+        'transactions': transactions_page,
+        'status_filter': status_filter,
+        'type_filter': type_filter,
+        'sort_by': sort_by,
+        'sort_dir': sort_dir,
+    }
+    
+    return render(request, 'bank/transactions.html', context) 

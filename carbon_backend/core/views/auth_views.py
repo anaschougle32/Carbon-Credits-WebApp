@@ -121,7 +121,8 @@ def employee_register(request):
             )
             
             messages.success(request, "Registration successful! Your account is pending approval from your employer.")
-            return redirect('login')
+            request.session['registration_type'] = 'employee'
+            return redirect('pending_approval')
             
         except EmployerProfile.DoesNotExist:
             messages.error(request, "Selected employer does not exist.")
@@ -208,8 +209,9 @@ def employer_register(request):
                 is_primary=True
             )
             
-            messages.success(request, "Registration successful! You can now log in to your employer account.")
-            return redirect('login')
+            messages.success(request, "Registration successful! Your account is pending approval from the system administrator.")
+            request.session['registration_type'] = 'employer'
+            return redirect('pending_approval')
             
         except Exception as e:
             messages.error(request, f"An error occurred during registration: {str(e)}")

@@ -727,4 +727,105 @@ def invite_employee(request):
     except Exception as e:
         messages.error(request, f"Error sending invitation: {str(e)}")
     
-    return redirect('employer:employer_employee_list') 
+    return redirect('employer:employer_employee_list')
+
+# Profile views
+@login_required
+@user_passes_test(lambda u: u.is_employer)
+def profile(request):
+    """View for employer profile page."""
+    # Get the employer profile associated with this user
+    employer_profile = getattr(request.user, 'employer_profile', None)
+    
+    context = {
+        'page_title': 'Employer Profile',
+        'user': request.user,
+        'employer_profile': employer_profile,
+    }
+    return render(request, 'employer/profile.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_employer)
+def update_profile(request):
+    """Handle employer profile updates."""
+    if request.method == 'POST':
+        # Get form data
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        company_name = request.POST.get('company_name')
+        industry = request.POST.get('industry')
+        phone = request.POST.get('phone')
+        website = request.POST.get('website')
+        address = request.POST.get('address')
+        
+        # Validate email format
+        if not email or '@' not in email:
+            messages.error(request, "Please provide a valid email address.")
+            return redirect('employer:profile')
+        
+        # Check if email is already in use by another user
+        if CustomUser.objects.exclude(id=request.user.id).filter(email=email).exists():
+            messages.error(request, "This email is already in use by another user.")
+            return redirect('employer:profile')
+        
+        # Update user data
+        user = request.user
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email
+        user.save()
+        
+        # Update employer profile if it exists
+        employer_profile = getattr(user, 'employer_profile', None)
+        if employer_profile:
+            employer_profile.company_name = company_name
+            employer_profile.industry = industry
+            employer_profile.phone = phone
+            employer_profile.website = website
+            employer_profile.address = address
+            employer_profile.save()
+        
+        messages.success(request, "Profile updated successfully.")
+        return redirect('employer:profile')
+    
+    # For GET requests, redirect to profile page
+    return redirect('employer:profile')
+
+@login_required
+@user_passes_test(lambda u: u.is_employer)
+def change_password(request):
+    """Handle employer password changes."""
+    if request.method == 'POST':
+        # Get form data
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        # Validate passwords
+        if not current_password or not new_password or not confirm_password:
+            messages.error(request, "Please fill in all password fields.")
+            return redirect('employer:profile')
+        
+        if new_password != confirm_password:
+            messages.error(request, "New passwords do not match.")
+            return redirect('employer:profile')
+        
+        # Check current password
+        if not request.user.check_password(current_password):
+            messages.error(request, "Current password is incorrect.")
+            return redirect('employer:profile')
+        
+        # Change password
+        request.user.set_password(new_password)
+        request.user.save()
+        
+        # Update session to prevent logout
+        from django.contrib.auth import update_session_auth_hash
+        update_session_auth_hash(request, request.user)
+        
+        messages.success(request, "Password changed successfully.")
+        return redirect('employer:profile')
+    
+    # For GET requests, redirect to profile page
+    return redirect('employer:profile') 

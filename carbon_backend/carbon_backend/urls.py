@@ -59,6 +59,23 @@ def dashboard_redirect(request):
         # Fallback to employee dashboard if no specific role is set
         return redirect('employee_dashboard')
 
+# Profile redirect function
+def profile_redirect(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+        
+    if request.user.is_super_admin:
+        return redirect('admin_profile')
+    elif request.user.is_bank_admin:
+        return redirect('bank:profile')
+    elif request.user.is_employer:
+        return redirect('employer:profile')
+    elif request.user.is_employee:
+        return redirect('employee_profile')
+    else:
+        # Fallback to login if no specific role is set
+        return redirect('login')
+
 # Custom logout view function
 def logout_view(request):
     logout(request)
@@ -76,11 +93,12 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='auth/login.html'), name='login'),
     path('logout/', logout_view, name='logout'),
     path('register/', TemplateView.as_view(template_name='auth/register.html'), name='register'),
-    path('profile/', TemplateView.as_view(template_name='auth/profile.html'), name='profile'),
+    path('profile/', profile_redirect, name='profile'),
     path('password_reset/', auth_views.PasswordResetView.as_view(template_name='auth/password_reset.html'), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='auth/password_reset_done.html'), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='auth/password_reset_confirm.html'), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='auth/password_reset_complete.html'), name='password_reset_complete'),
+    path('registration/pending-approval/', TemplateView.as_view(template_name='registration/pending_approval.html'), name='pending_approval'),
     
     # Main routes
     path('', LandingPageView.as_view(), name='home'),

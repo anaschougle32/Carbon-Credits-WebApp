@@ -21,6 +21,8 @@ def dashboard(request):
     total_users = CustomUser.objects.count()
     employers = EmployerProfile.objects.count()
     employees = EmployeeProfile.objects.count()
+    bank_admins = CustomUser.objects.filter(is_bank_admin=True).count()
+    super_admins = CustomUser.objects.filter(is_super_admin=True).count()
     pending_approval = EmployerProfile.objects.filter(approved=False).count()
     
     # Get from the trip and carbon credit models
@@ -34,7 +36,12 @@ def dashboard(request):
         'total_users': total_users,
         'employers': employers,
         'employees': employees,
+        'employee_count': employees,
+        'employer_count': employers,
+        'bank_admin_count': bank_admins,
+        'super_admin_count': super_admins,
         'pending_approval': pending_approval,
+        'pending_approval_count': pending_approval,
         'total_trips': total_trips,
         'total_credits': total_credits,
         'pending_employers': pending_employers,
@@ -269,6 +276,74 @@ def user_hierarchy(request):
 
 @login_required
 @user_passes_test(is_super_admin)
+def employers_list(request):
+    """
+    View for displaying and managing employer accounts
+    """
+    # Get filter parameters
+    status_filter = request.GET.get('status', '')
+    search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', 'date_joined')
+    sort_dir = request.GET.get('dir', 'desc')
+    
+    # Start with all employer profiles
+    employers_queryset = EmployerProfile.objects.all().select_related('user')
+    
+    # Apply status filter
+    if status_filter:
+        if status_filter == 'approved':
+            employers_queryset = employers_queryset.filter(approved=True)
+        elif status_filter == 'pending':
+            employers_queryset = employers_queryset.filter(approved=False)
+    
+    # Apply search filter
+    if search_query:
+        employers_queryset = employers_queryset.filter(
+            Q(company_name__icontains=search_query) |
+            Q(industry__icontains=search_query) |
+            Q(user__email__icontains=search_query) |
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query)
+        ).distinct()
+    
+    # Apply sorting
+    if sort_by == 'company':
+        order_field = 'company_name' if sort_dir == 'asc' else '-company_name'
+    elif sort_by == 'email':
+        order_field = 'user__email' if sort_dir == 'asc' else '-user__email'
+    elif sort_by == 'industry':
+        order_field = 'industry' if sort_dir == 'asc' else '-industry'
+    elif sort_by == 'status':
+        order_field = 'approved' if sort_dir == 'asc' else '-approved'
+    else:  # default to date joined
+        order_field = 'user__date_joined' if sort_dir == 'asc' else '-user__date_joined'
+    
+    employers_queryset = employers_queryset.order_by(order_field)
+    
+    # Count employees for each employer
+    for employer in employers_queryset:
+        employer.employee_count = employer.employees.count()
+    
+    # Pagination
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(employers_queryset, 20)  # 20 employers per page
+    employers = paginator.get_page(page_number)
+    
+    context = {
+        'employers': employers,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'sort_by': sort_by,
+        'sort_dir': sort_dir,
+        'page_obj': employers,
+        'total_employers': employers_queryset.count(),
+        'pending_approval_count': employers_queryset.filter(approved=False).count(),
+    }
+    
+    return render(request, 'admin/employers.html', context)
+
+@login_required
+@user_passes_test(is_super_admin)
 def create_user(request):
     """
     Create a new user
@@ -401,4 +476,86 @@ def reports(request):
             'redeemed_credits': redeemed_credits,
         })
     
-    return render(request, 'admin/reports.html', context) 
+    return render(request, 'admin/reports.html', context)
+
+# Profile views
+@login_required
+@user_passes_test(is_super_admin)
+def admin_profile(request):
+    """View for admin profile page."""
+    context = {
+        'page_title': 'Admin Profile',
+        'user': request.user,
+    }
+    return render(request, 'admin/profile.html', context)
+
+@login_required
+@user_passes_test(is_super_admin)
+def admin_update_profile(request):
+    """Handle admin profile updates."""
+    if request.method == 'POST':
+        # Get form data
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        
+        # Validate email format
+        if not email or '@' not in email:
+            messages.error(request, "Please provide a valid email address.")
+            return redirect('admin_profile')
+        
+        # Check if email is already in use by another user
+        if CustomUser.objects.exclude(id=request.user.id).filter(email=email).exists():
+            messages.error(request, "This email is already in use by another user.")
+            return redirect('admin_profile')
+        
+        # Update user data
+        user = request.user
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email
+        user.save()
+        
+        messages.success(request, "Profile updated successfully.")
+        return redirect('admin_profile')
+    
+    # For GET requests, redirect to profile page
+    return redirect('admin_profile')
+
+@login_required
+@user_passes_test(is_super_admin)
+def admin_change_password(request):
+    """Handle admin password changes."""
+    if request.method == 'POST':
+        # Get form data
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        # Validate passwords
+        if not current_password or not new_password or not confirm_password:
+            messages.error(request, "Please fill in all password fields.")
+            return redirect('admin_profile')
+        
+        if new_password != confirm_password:
+            messages.error(request, "New passwords do not match.")
+            return redirect('admin_profile')
+        
+        # Check current password
+        if not request.user.check_password(current_password):
+            messages.error(request, "Current password is incorrect.")
+            return redirect('admin_profile')
+        
+        # Change password
+        request.user.set_password(new_password)
+        request.user.save()
+        
+        # Update session to prevent logout
+        from django.contrib.auth import update_session_auth_hash
+        update_session_auth_hash(request, request.user)
+        
+        messages.success(request, "Password changed successfully.")
+        return redirect('admin_profile')
+    
+    # For GET requests, redirect to profile page
+    return redirect('admin_profile') 

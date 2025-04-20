@@ -53,7 +53,10 @@ class EmployerRegistrationView(APIView):
                 
                 # Return user data
                 return Response(
-                    {"detail": "Employer registration successful. Awaiting approval."},
+                    {
+                        "detail": "Employer registration successful. Awaiting approval.",
+                        "redirect_url": "/registration/pending-approval/"
+                    },
                     status=status.HTTP_201_CREATED
                 )
         
@@ -81,7 +84,10 @@ class EmployeeRegistrationView(APIView):
                 
                 # Return user data
                 return Response(
-                    {"detail": "Employee registration successful. Awaiting approval."},
+                    {
+                        "detail": "Employee registration successful. Awaiting approval.",
+                        "redirect_url": "/registration/pending-approval/"
+                    },
                     status=status.HTTP_201_CREATED
                 )
         
