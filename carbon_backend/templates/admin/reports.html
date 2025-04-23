@@ -12,26 +12,35 @@
     .container-wrapper {
         max-width: 1200px;
         margin: 0 auto;
-        padding: 2rem;
+        padding: 1rem;
     }
     
     .page-header {
         display: flex;
+        flex-direction: column;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
     }
     
     .page-title {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
         font-weight: 600;
         color: #0f172a;
-        margin: 0;
+        margin: 0 0 1rem 0;
     }
     
     .date-selector {
         display: flex;
         align-items: center;
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .date-selector select {
+        flex: 1;
+        min-width: 150px;
     }
     
     .export-btn {
@@ -46,6 +55,7 @@
         display: inline-flex;
         align-items: center;
         transition: all 0.2s;
+        white-space: nowrap;
     }
     
     .export-btn:hover {
@@ -59,16 +69,16 @@
     
     .main-content {
         display: flex;
+        flex-direction: column;
         gap: 1.5rem;
     }
     
     .sidebar {
-        width: 220px;
-        flex-shrink: 0;
+        width: 100%;
     }
     
     .content {
-        flex: 1;
+        width: 100%;
     }
     
     .tab-list {
@@ -76,6 +86,8 @@
         border-radius: 0.5rem;
         overflow: hidden;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-wrap: wrap;
     }
     
     .tab {
@@ -85,6 +97,9 @@
         cursor: pointer;
         border-left: 3px solid transparent;
         transition: background-color 0.2s;
+        flex: 1;
+        text-align: center;
+        min-width: 80px;
     }
     
     .tab.active {
@@ -119,14 +134,14 @@
         display: grid;
         grid-template-columns: repeat(1, 1fr);
         gap: 1rem;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
     }
     
     .metric-card {
         background-color: white;
         border-radius: 0.5rem;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        padding: 1.5rem;
+        padding: 1rem;
     }
     
     .metric-label {
@@ -136,10 +151,11 @@
     }
     
     .metric-value {
-        font-size: 2rem;
+        font-size: 1.75rem;
         font-weight: 600;
         color: #111827;
         margin-bottom: 0.25rem;
+        word-break: break-word;
     }
     
     .metric-subtext {
@@ -192,8 +208,9 @@
         background-color: white;
         border-radius: 0.5rem;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        padding: 1.5rem;
+        padding: 1rem;
         margin-bottom: 1.5rem;
+        overflow-x: auto;
     }
     
     .chart-title {
@@ -204,7 +221,8 @@
     }
     
     .chart-area {
-        height: 300px;
+        height: 250px;
+        min-height: 200px;
     }
     
     .loading-indicator {
@@ -212,7 +230,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 3rem 0;
+        padding: 2rem 0;
     }
     
     .spinner {
@@ -225,19 +243,85 @@
         margin-bottom: 1rem;
     }
     
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .table {
+        min-width: 500px;
+    }
+    
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
     
-    @media (min-width: 768px) {
+    @media (min-width: 640px) {
+        .container-wrapper {
+            padding: 1.5rem;
+        }
+        
+        .page-header {
+            flex-direction: row;
+            align-items: center;
+        }
+        
+        .page-title {
+            margin: 0;
+            font-size: 1.75rem;
+        }
+        
+        .date-selector {
+            width: auto;
+        }
+        
         .metrics-grid {
             grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .metric-card {
+            padding: 1.25rem;
+        }
+    }
+    
+    @media (min-width: 768px) {
+        .main-content {
+            flex-direction: row;
+        }
+        
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+        }
+        
+        .content {
+            flex: 1;
+        }
+        
+        .tab-list {
+            flex-direction: column;
+        }
+        
+        .tab {
+            text-align: left;
+        }
+        
+        .chart-container {
+            padding: 1.5rem;
+        }
+        
+        .chart-area {
+            height: 300px;
         }
     }
     
     @media (min-width: 1024px) {
         .metrics-grid {
             grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .metric-value {
+            font-size: 2rem;
         }
     }
 </style>
@@ -248,7 +332,7 @@
     <div class="page-header">
         <h1 class="page-title">Analytics & Reports</h1>
         <div class="date-selector">
-            <select class="form-select me-3" id="date-range" name="date_range">
+            <select class="form-select" id="date-range" name="date_range">
                 <option value="7d">Last 7 Days</option>
                 <option value="30d" selected>Last 30 Days</option>
                 <option value="90d">Last 90 Days</option>
@@ -354,7 +438,7 @@
             <!-- Report Content -->
             <div id="report-content" class="chart-container">
                 <h2 class="chart-title">Report Details</h2>
-                <div>
+                <div class="table-responsive">
                     <!-- Report will be loaded here -->
                     <div class="text-center py-5 text-muted">
                         <i class="bi bi-file-earmark-text display-4"></i>
