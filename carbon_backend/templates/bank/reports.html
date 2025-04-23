@@ -1,0 +1,131 @@
+{% extends "bank/base.html" %}
+{% load static %}
+
+{% block title %}Reports - Carbon Credits Platform{% endblock %}
+
+{% block bank_content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar with report options -->
+        <div class="col-md-4 col-lg-3">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Report Controls</h5>
+                </div>
+                <div class="card-body">
+                    <form id="report-form" hx-post="{% url 'bank:bank_reports' %}" hx-target="#report-content" hx-swap="innerHTML">
+                        {% csrf_token %}
+                        <input type="hidden" id="report_type_input" name="report_type" value="">
+                        <input type="hidden" id="date_range_input" name="date_range" value="">
+                        
+                        <div class="mb-3">
+                            <label for="report-type" class="form-label fw-bold">Report Type</label>
+                            <select class="form-select form-select-lg" id="report-type" name="report_type">
+                                <option value="">Select a report</option>
+                                <option value="summary">Summary Report</option>
+                                <option value="transactions">Transaction Report</option>
+                                <option value="price">Price Analytics</option>
+                                <option value="employer_activity">Employer Activity</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="date-range" class="form-label fw-bold">Date Range</label>
+                            <select class="form-select form-select-lg" id="date-range" name="date_range">
+                                <option value="7d">Last 7 Days</option>
+                                <option value="30d">Last 30 Days</option>
+                                <option value="90d">Last 90 Days</option>
+                                <option value="1y">Last Year</option>
+                            </select>
+                        </div>
+                        
+                        <button type="button" id="generate-report-btn" class="btn btn-primary btn-lg w-100 mb-4 d-flex justify-content-center align-items-center">
+                            <i class="fas fa-chart-bar me-2"></i> Generate Report
+                        </button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <div class="export-options">
+                        <h6 class="mb-3 fw-bold">Export Report</h6>
+                        <div class="d-grid gap-3">
+                            <button id="csv-export-btn" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-file-csv me-2"></i> Export CSV
+                            </button>
+                            <button id="pdf-export-btn" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-file-pdf me-2"></i> Export PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Report content area -->
+        <div class="col-md-8 col-lg-9">
+            <!-- Loading indicator -->
+            <div id="loading-indicator" class="text-center py-5 d-none">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 fs-5">Generating report...</p>
+            </div>
+            
+            <!-- Report content will be loaded here -->
+            <div id="report-content">
+                <!-- Default content when no report is selected -->
+                <div class="card shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-chart-line fa-4x text-muted mb-4"></i>
+                        <h4 class="mb-3">Select a Report Type</h4>
+                        <p class="text-muted fs-5">Choose a report type and date range from the controls on the left, then click "Generate Report".</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Additional styles for reports page */
+    .card {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+        font-weight: 600;
+    }
+    
+    .form-select {
+        border-radius: 8px;
+        padding: 10px 15px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .btn {
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-weight: 500;
+    }
+    
+    #loading-indicator {
+        margin-top: 100px;
+    }
+    
+    @media (max-width: 767px) {
+        .col-md-4 {
+            margin-bottom: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<!-- Bank reports JavaScript -->
+<script src="{% static 'js/bank-reports.js' %}"></script>
+{% endblock %} 

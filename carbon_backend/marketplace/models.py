@@ -1,126 +1,142 @@
 from django.db import models
 from django.utils import timezone
-from users.models import CustomUser, EmployerProfile
+from users.models import CustomUser, EmployerProfile, EmployeeProfile
 
 
 class MarketOffer(models.Model):
-    """Model for carbon credit selling offers on the marketplace."""
+    """Model for carbon credit market offers."""
     
     OFFER_STATUS = (
         ('active', 'Active'),
-        ('cancelled', 'Cancelled'),
+        ('pending', 'Pending'),
         ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
         ('expired', 'Expired'),
     )
     
     seller = models.ForeignKey(
         EmployerProfile, 
-        on_delete=models.CASCADE, 
+        on_delete=models.CASCADE,
         related_name='market_offers'
     )
     credit_amount = models.DecimalField(max_digits=10, decimal_places=2)
     price_per_credit = models.DecimalField(max_digits=10, decimal_places=2)
-    total_price = models.DecimalField(max_digits=12, decimal_places=2)
-    status = models.CharField(
-        max_length=10,
-        choices=OFFER_STATUS,
-        default='active'
-    )
-    expiry_date = models.DateTimeField(null=True, blank=True)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(default=timezone.now)
+    expiry_date = models.DateTimeField()
+    status = models.CharField(max_length=10, choices=OFFER_STATUS, default='active')
     
     def __str__(self):
-        return f"{self.seller.company_name}: {self.credit_amount} credits at {self.price_per_credit} each"
-    
-    def save(self, *args, **kwargs):
-        # Calculate total price before saving
-        if not self.total_price:
-            self.total_price = self.credit_amount * self.price_per_credit
-        super().save(*args, **kwargs)
+        return f"{self.credit_amount} credits at ${self.price_per_credit}/credit by {self.seller.company_name}"
 
 
 class MarketplaceTransaction(models.Model):
-    """Model for tracking carbon credit transactions between employers."""
+    """Model for tracking marketplace transactions."""
     
     TRANSACTION_STATUS = (
         ('pending', 'Pending'),
         ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
         ('completed', 'Completed'),
+        ('rejected', 'Rejected'),
         ('cancelled', 'Cancelled'),
     )
     
     offer = models.ForeignKey(
-        MarketOffer, 
-        on_delete=models.CASCADE,
-        related_name='transactions'
-    )
-    seller = models.ForeignKey(
-        EmployerProfile, 
-        on_delete=models.CASCADE, 
-        related_name='sold_transactions'
-    )
-    buyer = models.ForeignKey(
-        EmployerProfile, 
-        on_delete=models.CASCADE, 
-        related_name='bought_transactions'
-    )
-    credit_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    total_price = models.DecimalField(max_digits=12, decimal_places=2)
-    status = models.CharField(
-        max_length=10,
-        choices=TRANSACTION_STATUS,
-        default='pending'
-    )
-    admin_approval_required = models.BooleanField(default=False)
-    approved_by = models.ForeignKey(
-        CustomUser,
+        MarketOffer,
         on_delete=models.SET_NULL,
-        related_name='approved_transactions',
+        related_name='transactions',
         null=True,
         blank=True
     )
+    seller = models.ForeignKey(
+        EmployerProfile,
+        on_delete=models.CASCADE,
+        related_name='sold_transactions'
+    )
+    buyer = models.ForeignKey(
+        EmployerProfile,
+        on_delete=models.CASCADE,
+        related_name='purchased_transactions'
+    )
+    credit_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(default=timezone.now)
     completed_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=10, choices=TRANSACTION_STATUS, default='pending')
+    admin_approval_required = models.BooleanField(default=True)
     
     def __str__(self):
-        return f"{self.buyer.company_name} buying {self.credit_amount} credits from {self.seller.company_name}"
-    
-    def save(self, *args, **kwargs):
-        # Set seller from offer if not specified
-        if not self.seller_id and self.offer:
-            self.seller = self.offer.seller
-        
-        # Calculate total price if not specified
-        if not self.total_price and self.offer and self.credit_amount:
-            self.total_price = self.credit_amount * self.offer.price_per_credit
-        
-        # Set admin approval flag for large transactions
-        if self.total_price >= 1000:  # Example threshold
-            self.admin_approval_required = True
-            
-        super().save(*args, **kwargs)
+        return f"{self.credit_amount} credits for ${self.total_price} ({self.get_status_display()})"
 
 
 class TransactionNotification(models.Model):
-    """Model for notifying users about transaction status changes."""
+    """Model for marketplace transaction notifications."""
     
+    NOTIFICATION_TYPES = (
+        ('purchase', 'Purchase'),
+        ('sale', 'Sale'),
+        ('offer', 'Offer'),
+        ('status_change', 'Status Change'),
+        ('other', 'Other'),
+    )
+    
+    user = models.ForeignKey(
+        'users.CustomUser',
+        on_delete=models.CASCADE,
+        related_name='marketplace_notifications'
+    )
     transaction = models.ForeignKey(
         MarketplaceTransaction,
         on_delete=models.CASCADE,
-        related_name='notifications'
+        related_name='notifications',
+        null=True,
+        blank=True
     )
-    user = models.ForeignKey(
-        CustomUser,
-        on_delete=models.CASCADE,
-        related_name='transaction_notifications'
-    )
+    notification_type = models.CharField(max_length=15, choices=NOTIFICATION_TYPES)
     message = models.TextField()
-    is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
+    is_read = models.BooleanField(default=False)
     
     def __str__(self):
-        return f"Notification for {self.user.email} about transaction #{self.transaction.id}"
+        return f"{self.notification_type} notification for {self.user.email}"
+
+
+class EmployeeCreditOffer(models.Model):
+    """Model for employee-to-employer credit offers."""
+    
+    OFFER_STATUS = (
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('cancelled', 'Cancelled'),
+    )
+    
+    OFFER_TYPE = (
+        ('buy', 'Buy Credits'),
+        ('sell', 'Sell Credits'),
+    )
+    
+    employee = models.ForeignKey(
+        EmployeeProfile,
+        on_delete=models.CASCADE,
+        related_name='credit_offers'
+    )
+    employer = models.ForeignKey(
+        EmployerProfile,
+        on_delete=models.CASCADE,
+        related_name='employee_credit_offers'
+    )
+    offer_type = models.CharField(max_length=4, choices=OFFER_TYPE)
+    credit_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    market_rate = models.DecimalField(max_digits=10, decimal_places=2, help_text="Current market rate when offer was created")
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Total dollar amount of the transaction")
+    status = models.CharField(max_length=10, choices=OFFER_STATUS, default='pending')
+    created_at = models.DateTimeField(default=timezone.now)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        action = "buy" if self.offer_type == 'buy' else "sell"
+        return f"{self.employee.user.get_full_name()} wants to {action} {self.credit_amount} credits for ${self.total_amount}"
 
 
 # Signal handlers for transaction status changes

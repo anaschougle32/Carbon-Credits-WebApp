@@ -9,7 +9,7 @@ from datetime import timedelta
 from django.contrib import messages
 
 # Import marketplace models
-from marketplace.models import MarketOffer, MarketplaceTransaction, TransactionNotification
+from marketplace.models import MarketOffer, MarketplaceTransaction, TransactionNotification, EmployeeCreditOffer
 from decimal import Decimal
 
 @login_required
@@ -186,7 +186,7 @@ def location_add(request):
         # Validate inputs
         if not all([name, location_type, address, latitude, longitude]):
             messages.error(request, "All fields are required.")
-            return redirect('employer:employer_locations')
+            return redirect('employer:locations')
         
         try:
             # Create new location
@@ -199,7 +199,8 @@ def location_add(request):
                 longitude=longitude,
                 address=address,
                 location_type=location_type,
-                employer=employer_profile
+                employer=employer_profile,
+                is_primary=False
             )
             
             # If this is the first location, make it primary
@@ -213,7 +214,7 @@ def location_add(request):
         except Exception as e:
             messages.error(request, f"Error adding location: {str(e)}")
     
-    return redirect('employer:employer_locations')
+    return redirect('employer:locations')
 
 @login_required
 @user_passes_test(lambda u: u.is_employer)
@@ -237,7 +238,7 @@ def location_edit(request, location_id):
             # Validate inputs
             if not all([name, location_type, address, latitude, longitude]):
                 messages.error(request, "All fields are required.")
-                return redirect('employer:employer_locations')
+                return redirect('employer:locations')
             
             # Update location
             location.name = name
@@ -254,7 +255,7 @@ def location_edit(request, location_id):
     except Exception as e:
         messages.error(request, f"Error updating location: {str(e)}")
     
-    return redirect('employer:employer_locations')
+    return redirect('employer:locations')
 
 @login_required
 @user_passes_test(lambda u: u.is_employer)
@@ -271,7 +272,7 @@ def location_delete(request, location_id):
         # Don't allow deleting primary locations
         if location.is_primary:
             messages.error(request, "Cannot delete the primary office location.")
-            return redirect('employer:employer_locations')
+            return redirect('employer:locations')
         
         location_name = location.name
         location.delete()
@@ -283,7 +284,7 @@ def location_delete(request, location_id):
     except Exception as e:
         messages.error(request, f"Error deleting location: {str(e)}")
     
-    return redirect('employer:employer_locations')
+    return redirect('employer:locations')
 
 @login_required
 @user_passes_test(lambda u: u.is_employer)
@@ -311,7 +312,7 @@ def location_set_primary(request, location_id):
     except Exception as e:
         messages.error(request, f"Error setting primary location: {str(e)}")
     
-    return redirect('employer:employer_locations')
+    return redirect('employer:locations')
 
 @login_required
 @user_passes_test(lambda u: u.is_employer)
@@ -408,20 +409,116 @@ def trip_approval(request, trip_id):
         action = request.POST.get('action')
         
         if action == 'approve':
-            trip.verification_status = 'verified'
-            trip.verified_by = request.user
-            trip.save()
-            
-            # TODO: Calculate and create carbon credits if not already done
-            
+            # Check if trip already has credits assigned
+            if trip.credits_earned and trip.credits_earned > 0 and trip.verification_status != 'verified':
+                # Check if employer has enough credits in their wallet
+                employer_credits = CarbonCredit.objects.filter(
+                    owner_type='employer',
+                    owner_id=employer_profile.id,
+                    status='active'
+                ).aggregate(Sum('amount'))['amount__sum'] or 0
+                
+                credits_to_award = trip.credits_earned
+                
+                if employer_credits >= credits_to_award:
+                    # Update trip status
+                    trip.verification_status = 'verified'
+                    trip.verified_by = request.user
+                    trip.save()
+                    
+                    # Find any pending credits for this trip and activate them
+                    pending_credits = CarbonCredit.objects.filter(
+                        source_trip=trip,
+                        owner_type='employee',
+                        owner_id=trip.employee.id,
+                        status='pending'
+                    )
+                    
+                    if pending_credits.exists():
+                        for credit in pending_credits:
+                            credit.status = 'active'
+                            credit.save()
+                    else:
+                        # Create new credits for employee if none exist
+                        CarbonCredit.objects.create(
+                            amount=credits_to_award,
+                            source_trip=trip,
+                            owner_type='employee',
+                            owner_id=trip.employee.id,
+                            status='active',
+                            expiry_date=timezone.now() + timezone.timedelta(days=365)  # 1 year validity
+                        )
+                    
+                    # Deduct credits from employer's wallet
+                    remaining_to_deduct = credits_to_award
+                    employer_active_credits = CarbonCredit.objects.filter(
+                        owner_type='employer',
+                        owner_id=employer_profile.id,
+                        status='active'
+                    ).order_by('timestamp')  # Use oldest credits first
+                    
+                    for credit in employer_active_credits:
+                        if remaining_to_deduct <= 0:
+                            break
+                            
+                        if credit.amount <= remaining_to_deduct:
+                            # Use the entire credit
+                            credit.status = 'used'
+                            credit.save()
+                            remaining_to_deduct -= credit.amount
+                        else:
+                            # Split the credit
+                            new_amount = credit.amount - remaining_to_deduct
+                            
+                            # Update the original credit
+                            credit.amount = new_amount
+                            credit.save()
+                            
+                            # Create a record of the used portion
+                            CarbonCredit.objects.create(
+                                amount=remaining_to_deduct,
+                                source_trip=trip,
+                                owner_type='employer',
+                                owner_id=employer_profile.id,
+                                timestamp=timezone.now(),
+                                status='used',
+                                expiry_date=credit.expiry_date
+                            )
+                            
+                            remaining_to_deduct = 0
+                    
+                    messages.success(request, f"Trip approved and {credits_to_award} credits awarded to the employee.")
+                else:
+                    messages.error(request, f"Not enough credits in your wallet. You need {credits_to_award} credits but only have {employer_credits}.")
+                    return redirect('employer:pending_trips')
+            else:
+                # Update trip status if no credits involved or already verified
+                trip.verification_status = 'verified'
+                trip.verified_by = request.user
+                trip.save()
+                messages.success(request, "Trip approved successfully.")
+                
         elif action == 'reject':
             trip.verification_status = 'rejected'
             trip.save()
             
+            # Cancel any pending credits for this trip
+            pending_credits = CarbonCredit.objects.filter(
+                source_trip=trip,
+                owner_type='employee',
+                status='pending'
+            )
+            
+            for credit in pending_credits:
+                credit.status = 'expired'
+                credit.save()
+            
+            messages.success(request, "Trip rejected successfully.")
+            
     except Trip.DoesNotExist:
-        pass
+        messages.error(request, "Trip not found.")
     
-    return redirect('employer:employer_pending_trips')
+    return redirect('employer:pending_trips')
 
 @login_required
 @user_passes_test(lambda u: u.is_employer)
@@ -828,4 +925,271 @@ def change_password(request):
         return redirect('employer:profile')
     
     # For GET requests, redirect to profile page
-    return redirect('employer:profile') 
+    return redirect('employer:profile')
+
+@login_required
+@user_passes_test(lambda u: u.is_employer)
+def employee_marketplace(request):
+    """
+    View for handling employee credit trading requests.
+    """
+    employer_profile = request.user.employer_profile
+    
+    # Get pending credit offers from employees
+    pending_offers = EmployeeCreditOffer.objects.filter(
+        employer=employer_profile,
+        status='pending'
+    ).order_by('-created_at')
+    
+    # Get completed offers (processed in last 30 days)
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    completed_offers = EmployeeCreditOffer.objects.filter(
+        employer=employer_profile,
+        status__in=['approved', 'rejected', 'cancelled'],
+        processed_at__gte=thirty_days_ago
+    ).order_by('-processed_at')
+    
+    # Get employer credit balance
+    employer_credits = CarbonCredit.objects.filter(
+        owner_type='employer',
+        owner_id=employer_profile.id,
+        status='active'
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # Get current market rate
+    market_rate = MarketOffer.objects.filter(
+        status='active'
+    ).aggregate(Avg('price_per_credit'))['price_per_credit__avg'] or 5.0  # Default to $5 if no data
+    
+    context = {
+        'page_title': 'Employee Credit Marketplace',
+        'pending_offers': pending_offers,
+        'completed_offers': completed_offers,
+        'employer_credits': employer_credits,
+        'market_rate': market_rate,
+        'wallet_balance': employer_profile.wallet_balance
+    }
+    
+    return render(request, 'employer/employee_marketplace.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_employer)
+def process_employee_offer(request, offer_id):
+    """
+    Process (approve/reject) an employee credit offer.
+    """
+    if request.method != 'POST':
+        return redirect('employer:employee_marketplace')
+    
+    employer_profile = request.user.employer_profile
+    action = request.POST.get('action')
+    
+    try:
+        offer = get_object_or_404(
+            EmployeeCreditOffer, 
+            id=offer_id, 
+            employer=employer_profile,
+            status='pending'
+        )
+        
+        employee = offer.employee
+        credit_amount = offer.credit_amount
+        total_amount = offer.total_amount
+        
+        if action == 'approve':
+            # For employee selling credits to employer
+            if offer.offer_type == 'sell':
+                # Check if employee has enough credits
+                employee_credits = CarbonCredit.objects.filter(
+                    owner_type='employee',
+                    owner_id=employee.id,
+                    status='active'
+                ).aggregate(Sum('amount'))['amount__sum'] or 0
+                
+                if employee_credits < credit_amount:
+                    messages.error(request, f"Employee doesn't have enough credits. Required: {credit_amount}, Available: {employee_credits}")
+                    return redirect('employer:employee_marketplace')
+                
+                # Check if employer has enough wallet balance
+                if employer_profile.wallet_balance < total_amount:
+                    messages.error(request, f"Not enough balance in your wallet. Required: ${total_amount}, Available: ${employer_profile.wallet_balance}")
+                    return redirect('employer:employee_marketplace')
+                
+                # Transfer credits from employee to employer
+                remaining_to_transfer = credit_amount
+                employee_active_credits = CarbonCredit.objects.filter(
+                    owner_type='employee',
+                    owner_id=employee.id,
+                    status='active'
+                ).order_by('timestamp')  # Use oldest credits first
+                
+                for credit in employee_active_credits:
+                    if remaining_to_transfer <= 0:
+                        break
+                        
+                    if credit.amount <= remaining_to_transfer:
+                        # Use the entire credit
+                        credit.status = 'used'
+                        credit.save()
+                        
+                        # Create a new credit for the employer
+                        CarbonCredit.objects.create(
+                            amount=credit.amount,
+                            source_trip=credit.source_trip,
+                            owner_type='employer',
+                            owner_id=employer_profile.id,
+                            timestamp=timezone.now(),
+                            status='active',
+                            expiry_date=timezone.now() + timezone.timedelta(days=365)  # 1 year validity
+                        )
+                        
+                        remaining_to_transfer -= credit.amount
+                    else:
+                        # Split the credit
+                        new_amount = credit.amount - remaining_to_transfer
+                        
+                        # Update the original credit
+                        credit.amount = new_amount
+                        credit.save()
+                        
+                        # Create a used credit record for the employee
+                        CarbonCredit.objects.create(
+                            amount=remaining_to_transfer,
+                            source_trip=credit.source_trip,
+                            owner_type='employee',
+                            owner_id=employee.id,
+                            timestamp=timezone.now(),
+                            status='used',
+                            expiry_date=credit.expiry_date
+                        )
+                        
+                        # Create a new credit for the employer
+                        CarbonCredit.objects.create(
+                            amount=remaining_to_transfer,
+                            source_trip=credit.source_trip,
+                            owner_type='employer',
+                            owner_id=employer_profile.id,
+                            timestamp=timezone.now(),
+                            status='active',
+                            expiry_date=timezone.now() + timezone.timedelta(days=365)  # 1 year validity
+                        )
+                        
+                        remaining_to_transfer = 0
+                
+                # Transfer money to employee's wallet
+                employee.wallet_balance += total_amount
+                employee.save()
+                
+                # Deduct from employer's wallet
+                employer_profile.wallet_balance -= total_amount
+                employer_profile.save()
+                
+                messages.success(request, f"Successfully bought {credit_amount} credits from {employee.user.get_full_name()} for ${total_amount}.")
+                
+            # For employee buying credits from employer
+            else:
+                # Check if employer has enough credits
+                employer_credits = CarbonCredit.objects.filter(
+                    owner_type='employer',
+                    owner_id=employer_profile.id,
+                    status='active'
+                ).aggregate(Sum('amount'))['amount__sum'] or 0
+                
+                if employer_credits < credit_amount:
+                    messages.error(request, f"You don't have enough credits. Required: {credit_amount}, Available: {employer_credits}")
+                    return redirect('employer:employee_marketplace')
+                
+                # Check if employee has enough wallet balance
+                if employee.wallet_balance < total_amount:
+                    messages.error(request, f"Employee doesn't have enough balance in their wallet. Required: ${total_amount}, Available: ${employee.wallet_balance}")
+                    return redirect('employer:employee_marketplace')
+                
+                # Transfer credits from employer to employee
+                remaining_to_transfer = credit_amount
+                employer_active_credits = CarbonCredit.objects.filter(
+                    owner_type='employer',
+                    owner_id=employer_profile.id,
+                    status='active'
+                ).order_by('timestamp')  # Use oldest credits first
+                
+                for credit in employer_active_credits:
+                    if remaining_to_transfer <= 0:
+                        break
+                        
+                    if credit.amount <= remaining_to_transfer:
+                        # Use the entire credit
+                        credit.status = 'used'
+                        credit.save()
+                        
+                        # Create a new credit for the employee
+                        CarbonCredit.objects.create(
+                            amount=credit.amount,
+                            source_trip=credit.source_trip,
+                            owner_type='employee',
+                            owner_id=employee.id,
+                            timestamp=timezone.now(),
+                            status='active',
+                            expiry_date=timezone.now() + timezone.timedelta(days=365)  # 1 year validity
+                        )
+                        
+                        remaining_to_transfer -= credit.amount
+                    else:
+                        # Split the credit
+                        new_amount = credit.amount - remaining_to_transfer
+                        
+                        # Update the original credit
+                        credit.amount = new_amount
+                        credit.save()
+                        
+                        # Create a used credit record for the employer
+                        CarbonCredit.objects.create(
+                            amount=remaining_to_transfer,
+                            source_trip=credit.source_trip,
+                            owner_type='employer',
+                            owner_id=employer_profile.id,
+                            timestamp=timezone.now(),
+                            status='used',
+                            expiry_date=credit.expiry_date
+                        )
+                        
+                        # Create a new credit for the employee
+                        CarbonCredit.objects.create(
+                            amount=remaining_to_transfer,
+                            source_trip=credit.source_trip,
+                            owner_type='employee',
+                            owner_id=employee.id,
+                            timestamp=timezone.now(),
+                            status='active',
+                            expiry_date=timezone.now() + timezone.timedelta(days=365)  # 1 year validity
+                        )
+                        
+                        remaining_to_transfer = 0
+                
+                # Transfer money from employee's wallet to employer's
+                employee.wallet_balance -= total_amount
+                employee.save()
+                
+                # Add to employer's wallet
+                employer_profile.wallet_balance += total_amount
+                employer_profile.save()
+                
+                messages.success(request, f"Successfully sold {credit_amount} credits to {employee.user.get_full_name()} for ${total_amount}.")
+            
+            # Update offer status
+            offer.status = 'approved'
+            offer.processed_at = timezone.now()
+            offer.save()
+            
+        elif action == 'reject':
+            offer.status = 'rejected'
+            offer.processed_at = timezone.now()
+            offer.save()
+            
+            messages.success(request, f"Offer from {employee.user.get_full_name()} rejected.")
+            
+    except EmployeeCreditOffer.DoesNotExist:
+        messages.error(request, "Offer not found or already processed.")
+    except Exception as e:
+        messages.error(request, f"Error processing offer: {str(e)}")
+    
+    return redirect('employer:employee_marketplace') 

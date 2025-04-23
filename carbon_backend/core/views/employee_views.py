@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Sum, Avg
 from django.utils import timezone
@@ -11,18 +11,129 @@ from django.db.models import Q
 from trips.models import CarbonCredit, Trip
 from django.conf import settings
 from users.models import CustomUser
+from django.urls import reverse
+from users.models import EmployeeProfile
+from marketplace.models import MarketOffer, EmployeeCreditOffer
+from datetime import timedelta
 
 @login_required
 @user_passes_test(lambda u: u.is_employee)
 def dashboard(request):
     """
-    Dashboard view for employee users.
+    Dashboard view for employees.
     """
+    employee = request.user.employee_profile
+    
+    # Calculate carbon credits earned
+    total_credits = CarbonCredit.objects.filter(
+        owner_type='employee', 
+        owner_id=employee.id,
+        status='active'
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # Credits earned in the last 7 days
+    week_ago = timezone.now() - timedelta(days=7)
+    credits_last_week = CarbonCredit.objects.filter(
+        owner_type='employee', 
+        owner_id=employee.id, 
+        status='active',
+        timestamp__gte=week_ago
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # Get trip statistics
+    total_trips = Trip.objects.filter(employee=employee).count()
+    completed_trips = Trip.objects.filter(
+        employee=employee, 
+        verification_status='verified'
+    ).count()
+    
+    # Calculate total distance traveled
+    total_distance = Trip.objects.filter(
+        employee=employee,
+        verification_status='verified'
+    ).aggregate(Sum('distance_km'))['distance_km__sum'] or 0
+    
+    # Calculate CO2 saved
+    co2_saved = Trip.objects.filter(
+        employee=employee,
+        verification_status='verified'
+    ).aggregate(Sum('carbon_savings'))['carbon_savings__sum'] or 0
+    
+    # Calculate streak (consecutive days with verified trips)
+    # For simplicity, we'll just count consecutive days with trips
+    streak = calculate_streak(employee)
+    best_streak = getattr(employee, 'best_streak', 0)
+    
+    if streak > best_streak:
+        employee.best_streak = streak
+        employee.save()
+    
+    # Get recent trips
+    recent_trips = Trip.objects.filter(
+        employee=employee
+    ).order_by('-start_time')[:5]
+    
+    # Get pending trips
+    pending_trips = Trip.objects.filter(
+        employee=employee,
+        verification_status='pending'
+    ).count()
+    
+    # Tree equivalent (rough estimate)
+    tree_equivalent = int(co2_saved / 21) if co2_saved else 0  # 1 tree absorbs ~21kg CO2 per year
+    
     context = {
         'page_title': 'Employee Dashboard',
+        'employee': employee,
+        'total_credits': total_credits,
+        'credits_last_week': credits_last_week,
+        'total_trips': total_trips,
+        'completed_trips': completed_trips,
+        'total_distance': total_distance,
+        'co2_saved': co2_saved,
+        'streak': streak,
+        'best_streak': best_streak,
+        'recent_trips': recent_trips,
+        'pending_trips': pending_trips,
+        'tree_equivalent': tree_equivalent,
+        'wallet_balance': employee.wallet_balance
     }
     
     return render(request, 'employee/dashboard.html', context)
+
+def calculate_streak(employee):
+    """Calculate the employee's current streak of consecutive days with trips."""
+    verified_trips = Trip.objects.filter(
+        employee=employee,
+        verification_status='verified'
+    ).order_by('-start_time')
+    
+    if not verified_trips:
+        return 0
+    
+    # Get dates of verified trips
+    trip_dates = [trip.start_time.date() for trip in verified_trips]
+    
+    # Remove duplicates and sort
+    unique_dates = sorted(set(trip_dates), reverse=True)
+    
+    # Calculate streak
+    streak = 1
+    today = timezone.now().date()
+    
+    # If no trip today, start from the most recent trip date
+    if unique_dates[0] != today:
+        today = unique_dates[0]
+    
+    # Check for consecutive days
+    for i in range(1, len(unique_dates)):
+        prev_date = today - timedelta(days=i)
+        if prev_date in unique_dates:
+            streak += 1
+        else:
+            break
+    
+    return streak
 
 @login_required
 @user_passes_test(lambda u: u.is_employee)
@@ -431,55 +542,115 @@ def change_password(request):
 @login_required
 @user_passes_test(lambda u: u.is_employee)
 def marketplace(request):
-    """View for employee marketplace to sell carbon credits."""
-    # Get employee profile
-    employee_profile = request.user.employee_profile
+    """
+    View for employee marketplace to buy/sell credits to their employer.
+    """
+    employee = request.user.employee_profile
+    employer = employee.employer
     
-    # Get available credits
-    from marketplace.models import Transaction
-    
-    total_credits = CarbonCredit.objects.filter(
+    # Get employee's active credits
+    employee_credits = CarbonCredit.objects.filter(
         owner_type='employee',
-        owner_id=employee_profile.id
+        owner_id=employee.id,
+        status='active'
     ).aggregate(Sum('amount'))['amount__sum'] or 0
     
-    sold_credits = CarbonCredit.objects.filter(
-        owner_type='employee',
-        owner_id=employee_profile.id,
-        status='sold'
-    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    # Get current market rate (average price from active market offers)
+    market_rate = MarketOffer.objects.filter(
+        status='active'
+    ).aggregate(Avg('price_per_credit'))['price_per_credit__avg'] or 5.0  # Default to $5 if no data
     
-    redeemed_credits = CarbonCredit.objects.filter(
-        owner_type='employee',
-        owner_id=employee_profile.id,
-        status='redeemed'
-    ).aggregate(Sum('amount'))['amount__sum'] or 0
-    
-    # Calculate available credits
-    available_credits = total_credits - sold_credits - redeemed_credits
-    
-    # Get transaction history
-    transactions = Transaction.objects.filter(
-        Q(seller_type='employee', seller_id=employee_profile.id) |
-        Q(buyer_type='employee', buyer_id=employee_profile.id)
+    # Get pending offers
+    pending_offers = EmployeeCreditOffer.objects.filter(
+        employee=employee,
+        status='pending'
     ).order_by('-created_at')
     
-    # Get market info (average price)
-    market_avg_price = Transaction.objects.filter(
-        status='completed'
-    ).aggregate(Avg('price_per_credit'))['price_per_credit__avg'] or 0
+    # Get completed offers
+    completed_offers = EmployeeCreditOffer.objects.filter(
+        employee=employee,
+        status__in=['approved', 'rejected', 'cancelled']
+    ).order_by('-processed_at')[:10]  # Show last 10
     
-    # Paginate transactions
-    paginator = Paginator(transactions, 10)
-    page_number = request.GET.get('page', 1)
-    transactions_page = paginator.get_page(page_number)
+    if request.method == 'POST':
+        offer_type = request.POST.get('offer_type')
+        credit_amount = request.POST.get('credit_amount')
+        
+        try:
+            credit_amount = float(credit_amount)
+            
+            # Validate input
+            if credit_amount <= 0:
+                messages.error(request, "Credit amount must be positive")
+                return redirect('employee_marketplace')
+                
+            # For selling: check if employee has enough credits
+            if offer_type == 'sell' and credit_amount > employee_credits:
+                messages.error(request, f"You don't have enough credits. Available: {employee_credits}")
+                return redirect('employee_marketplace')
+            
+            # For buying: implement any validation if needed
+            
+            # Calculate total amount based on market rate
+            total_amount = Decimal(str(credit_amount)) * Decimal(str(market_rate))
+            
+            # Create the offer
+            EmployeeCreditOffer.objects.create(
+                employee=employee,
+                employer=employer,
+                offer_type=offer_type,
+                credit_amount=credit_amount,
+                market_rate=market_rate,
+                total_amount=total_amount,
+                status='pending'
+            )
+            
+            if offer_type == 'buy':
+                messages.success(request, f"Your request to buy {credit_amount} credits for ${total_amount:.2f} has been submitted to your employer.")
+            else:
+                messages.success(request, f"Your request to sell {credit_amount} credits for ${total_amount:.2f} has been submitted to your employer.")
+                
+        except ValueError:
+            messages.error(request, "Invalid credit amount")
+        except Exception as e:
+            messages.error(request, f"Error processing request: {str(e)}")
     
     context = {
-        'page_title': 'Employee Marketplace',
-        'employee_profile': employee_profile,
-        'available_credits': available_credits,
-        'market_avg_price': market_avg_price,
-        'transactions': transactions_page
+        'page_title': 'Marketplace',
+        'employee': employee,
+        'employer': employer,
+        'employee_credits': employee_credits,
+        'market_rate': market_rate,
+        'pending_offers': pending_offers,
+        'completed_offers': completed_offers,
+        'wallet_balance': employee.wallet_balance
     }
     
-    return render(request, 'employee/marketplace.html', context) 
+    return render(request, 'employee/marketplace.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_employee)
+def cancel_offer(request, offer_id):
+    """
+    Cancel a pending credit offer.
+    """
+    employee = request.user.employee_profile
+    
+    try:
+        offer = get_object_or_404(
+            EmployeeCreditOffer, 
+            id=offer_id, 
+            employee=employee,
+            status='pending'
+        )
+        
+        offer.status = 'cancelled'
+        offer.processed_at = timezone.now()
+        offer.save()
+        
+        messages.success(request, "Your offer has been cancelled.")
+        
+    except EmployeeCreditOffer.DoesNotExist:
+        messages.error(request, "Offer not found or already processed.")
+    
+    return redirect('employee_marketplace') 

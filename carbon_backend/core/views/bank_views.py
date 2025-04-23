@@ -1,15 +1,21 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import JsonResponse
-from users.models import CustomUser, EmployerProfile
+from django.http import JsonResponse, HttpResponse
+from users.models import CustomUser, EmployerProfile, Location
 from trips.models import Trip, CarbonCredit
 from marketplace.models import MarketplaceTransaction, MarketOffer
-import json
-from django.db.models import Sum, Count, Avg, Case, When, Value, IntegerField, F
+from django.db.models import Sum, Count, Avg, Case, When, Value, IntegerField, F, Q, Max, Min
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.contrib import messages
 from django.core.paginator import Paginator
+import csv
+import io
+from django.utils.decorators import method_decorator
+from users.decorators import bank_required
+from django.views import View
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.db import models
 
 @login_required
 @user_passes_test(lambda u: u.is_bank_admin)
@@ -26,6 +32,11 @@ def dashboard(request):
     total_credits_raw = CarbonCredit.objects.aggregate(Sum('amount'))['amount__sum'] or 0
     total_credits = round(float(total_credits_raw), 2)  # Round to 2 decimal places
     
+    # Recent credits (last 7 days)
+    seven_days_ago = timezone.now() - timedelta(days=7)
+    recent_credits = CarbonCredit.objects.filter(timestamp__gte=seven_days_ago).aggregate(Sum('amount'))['amount__sum'] or 0
+    recent_credits = round(float(recent_credits), 2)
+    
     # Trip statistics
     total_trips = Trip.objects.count()
     
@@ -33,16 +44,31 @@ def dashboard(request):
     verified_trips_count = Trip.objects.filter(verification_status='verified').count()
     
     # Transaction statistics
-    transactions = MarketplaceTransaction.objects.count()
+    transaction_count = MarketplaceTransaction.objects.count()
+    
+    # Location count
+    location_count = Location.objects.count()
+    
+    # Market value calculation - fixed to use direct price calculation instead of accessing offer__price_per_credit
+    avg_price = MarketplaceTransaction.objects.filter(
+        status='completed'
+    ).aggregate(avg_price=Avg(F('total_price') / F('credit_amount')))['avg_price'] or 0
+    
+    market_value = round(float(avg_price * total_credits_raw), 2)
     
     context = {
         'total_users': total_users,
         'total_employers': total_employers,
+        'employer_count': total_employers,  # Add employer count
         'pending_approvals': pending_approvals,
         'total_credits': total_credits,
+        'recent_credits': recent_credits,  # Add recent credits
         'total_trips': total_trips,
         'verified_trips': verified_trips_count,
-        'transactions': transactions,
+        'transactions': transaction_count,
+        'transaction_count': transaction_count,  # Add transaction count
+        'location_count': location_count,  # Add location count
+        'market_value': market_value,  # Add market value
         'page_title': 'Bank Admin Dashboard',
     }
     
@@ -426,13 +452,9 @@ def buy_credits(request):
 @user_passes_test(lambda u: u.is_bank_admin)
 def profile(request):
     """View for bank admin profile page."""
-    # Get the bank profile associated with this user
-    bank_profile = getattr(request.user, 'bank_profile', None)
-    
     context = {
         'page_title': 'Bank Admin Profile',
         'user': request.user,
-        'bank_profile': bank_profile,
     }
     return render(request, 'bank/profile.html', context)
 
@@ -445,7 +467,6 @@ def update_profile(request):
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
         email = request.POST.get('email')
-        bank_name = request.POST.get('bank_name')
         
         # Validate email format
         if not email or '@' not in email:
@@ -463,12 +484,6 @@ def update_profile(request):
         user.last_name = last_name
         user.email = email
         user.save()
-        
-        # Update bank profile if it exists
-        bank_profile = getattr(user, 'bank_profile', None)
-        if bank_profile and bank_name:
-            bank_profile.bank_name = bank_name
-            bank_profile.save()
         
         messages.success(request, "Profile updated successfully.")
         return redirect('bank:profile')
@@ -514,6 +529,155 @@ def change_password(request):
     # For GET requests, redirect to profile page
     return redirect('bank:profile')
 
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def reports(request):
+    """
+    Reports view for bank administrators
+    """
+    report_type = request.GET.get('type', 'summary')
+    date_range = request.GET.get('date_range', 'all')
+    
+    # Base context
+    context = {
+        'report_type': report_type,
+        'date_range': date_range,
+    }
+    
+    # Additional data for summary report
+    if report_type == 'summary':
+        # Transaction statistics
+        total_transactions = MarketplaceTransaction.objects.count()
+        total_volume = MarketplaceTransaction.objects.aggregate(Sum('credit_amount'))['credit_amount__sum'] or 0
+        
+        # Credits statistics
+        total_credits = CarbonCredit.objects.aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        # Get the average price per credit from completed transactions
+        avg_price_per_credit = (
+            MarketplaceTransaction.objects
+            .filter(status='completed')
+            .aggregate(avg_price=Avg('price_per_credit'))['avg_price'] or 0
+        )
+        
+        # Count transactions by status
+        completed_transactions = MarketplaceTransaction.objects.filter(status='completed').count()
+        pending_transactions = MarketplaceTransaction.objects.filter(status='pending').count()
+        
+        # Add stats to context
+        context.update({
+            'total_transactions': total_transactions,
+            'total_volume': total_volume,
+            'total_credits': total_credits,
+            'avg_price_per_credit': round(avg_price_per_credit, 2),
+            'completed_transactions': completed_transactions,
+            'pending_transactions': pending_transactions,
+        })
+    
+    return render(request, 'bank/reports.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def export_reports(request):
+    """
+    Export reports data in CSV or PDF format
+    """
+    report_type = request.GET.get('report_type', 'summary')
+    date_range = request.GET.get('date_range', 'all')
+    format = request.GET.get('format', 'csv')
+    
+    # Get data based on report type
+    data = []
+    
+    if report_type == 'summary':
+        # Transaction statistics
+        total_transactions = MarketplaceTransaction.objects.count()
+        total_volume = MarketplaceTransaction.objects.aggregate(Sum('credit_amount'))['credit_amount__sum'] or 0
+        
+        # Credits statistics
+        total_credits = CarbonCredit.objects.aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        # Get the average price per credit from completed transactions
+        avg_price_per_credit = (
+            MarketplaceTransaction.objects
+            .filter(status='completed')
+            .aggregate(avg_price=Avg('price_per_credit'))['avg_price'] or 0
+        )
+        
+        # Count transactions by status
+        completed_transactions = MarketplaceTransaction.objects.filter(status='completed').count()
+        pending_transactions = MarketplaceTransaction.objects.filter(status='pending').count()
+        
+        # Summary data
+        data = [
+            ['Metric', 'Value'],
+            ['Total Transactions', total_transactions],
+            ['Total Trading Volume', total_volume],
+            ['Total Credits', total_credits],
+            ['Average Price per Credit', round(avg_price_per_credit, 2)],
+            ['Completed Transactions', completed_transactions],
+            ['Pending Transactions', pending_transactions]
+        ]
+    
+    elif report_type == 'transactions':
+        # Get transactions based on date range
+        transactions = MarketplaceTransaction.objects.all().order_by('-created_at')
+        
+        # Apply date filter if needed
+        if date_range == '7d':
+            transactions = transactions.filter(created_at__gte=timezone.now() - timedelta(days=7))
+        elif date_range == '30d':
+            transactions = transactions.filter(created_at__gte=timezone.now() - timedelta(days=30))
+        elif date_range == '90d':
+            transactions = transactions.filter(created_at__gte=timezone.now() - timedelta(days=90))
+        
+        # Headers
+        data.append(['Transaction ID', 'Seller', 'Buyer', 'Credits', 'Price per Credit', 'Total Price', 'Status', 'Created', 'Completed'])
+        
+        # Transaction data
+        for transaction in transactions:
+            data.append([
+                transaction.id,
+                transaction.seller.company_name if transaction.seller else 'N/A',
+                transaction.buyer.company_name if transaction.buyer else 'N/A',
+                transaction.credit_amount,
+                transaction.price_per_credit,
+                transaction.total_price,
+                transaction.status,
+                transaction.created_at.strftime('%Y-%m-%d %H:%M') if transaction.created_at else 'N/A',
+                transaction.completed_at.strftime('%Y-%m-%d %H:%M') if transaction.completed_at else 'N/A'
+            ])
+    
+    # Generate export based on format
+    if format == 'csv':
+        # Create CSV response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="carbon_trading_{report_type}_report.csv"'
+        
+        # Write CSV data
+        writer = csv.writer(response)
+        for row in data:
+            writer.writerow(row)
+        
+        return response
+    
+    elif format == 'pdf':
+        # For PDF, a more complex implementation would be needed with a PDF library
+        # This is a simplified version that returns a text response
+        response = HttpResponse(content_type='text/plain')
+        response['Content-Disposition'] = f'attachment; filename="carbon_trading_{report_type}_report.txt"'
+        
+        # Write data as text
+        output = io.StringIO()
+        for row in data:
+            output.write('\t'.join([str(item) for item in row]) + '\n')
+        
+        response.write(output.getvalue())
+        return response
+    
+    # Default fallback - return JSON
+    return JsonResponse({'data': data})
+
 # Transactions view
 @login_required
 @user_passes_test(lambda u: u.is_bank_admin)
@@ -521,20 +685,15 @@ def transactions(request):
     """View for bank transactions page."""
     # Filter parameters
     status_filter = request.GET.get('status', '')
-    type_filter = request.GET.get('type', '')
     sort_by = request.GET.get('sort', 'date')
     sort_dir = request.GET.get('dir', 'desc')
     
     # Get all transactions
-    from marketplace.models import Transaction
-    transactions_qs = Transaction.objects.all()
+    transactions_qs = MarketplaceTransaction.objects.all()
     
     # Apply filters
     if status_filter:
         transactions_qs = transactions_qs.filter(status=status_filter)
-    
-    if type_filter:
-        transactions_qs = transactions_qs.filter(transaction_type=type_filter)
     
     # Apply sorting
     if sort_by == 'date':
@@ -542,7 +701,7 @@ def transactions(request):
     elif sort_by == 'amount':
         order_field = 'credit_amount' if sort_dir == 'asc' else '-credit_amount'
     elif sort_by == 'price':
-        order_field = 'price_per_credit' if sort_dir == 'asc' else '-price_per_credit'
+        order_field = 'total_price' if sort_dir == 'asc' else '-total_price'
     else:
         order_field = '-created_at'  # Default sorting
     
@@ -558,9 +717,257 @@ def transactions(request):
         'page_title': 'Carbon Credit Transactions',
         'transactions': transactions_page,
         'status_filter': status_filter,
-        'type_filter': type_filter,
         'sort_by': sort_by,
         'sort_dir': sort_dir,
     }
     
-    return render(request, 'bank/transactions.html', context) 
+    return render(request, 'bank/transactions.html', context)
+
+class BankDashboardView(View):
+    @method_decorator(login_required)
+    @method_decorator(bank_required)
+    def get(self, request):
+        context = {
+            'page_title': 'Bank Dashboard',
+        }
+        return render(request, 'bank/dashboard.html', context)
+
+@method_decorator([login_required, bank_required], name='dispatch')
+class BankReportsView(View):
+    """View for generating and displaying various bank reports"""
+    
+    def get(self, request):
+        """Display the reports page"""
+        context = {
+            'page_title': 'Reports',
+            'active_page': 'reports',
+        }
+        return render(request, 'bank/reports.html', context)
+    
+    def post(self, request):
+        """Generate report content based on form data"""
+        report_type = request.POST.get('report_type', '')
+        date_range = request.POST.get('date_range', '7d')
+        
+        # Calculate the date range
+        end_date = timezone.now()
+        if date_range == '7d':
+            start_date = end_date - timedelta(days=7)
+        elif date_range == '30d':
+            start_date = end_date - timedelta(days=30)
+        elif date_range == '90d':
+            start_date = end_date - timedelta(days=90)
+        elif date_range == '1y':
+            start_date = end_date - timedelta(days=365)
+        else:
+            # Default to 7 days
+            start_date = end_date - timedelta(days=7)
+        
+        # Get report data based on type
+        context = self._get_report_data(report_type, start_date, end_date)
+        
+        # Add report type to context
+        context['report_type'] = report_type
+        
+        # Render only the report content partial
+        return render(request, 'bank/partials/report_content.html', context)
+    
+    def _get_report_data(self, report_type, start_date, end_date):
+        """Get data for the specified report type and date range"""
+        context = {}
+        
+        # Filter transactions by date range
+        transactions = MarketplaceTransaction.objects.filter(
+            created_at__gte=start_date,
+            created_at__lte=end_date
+        )
+        
+        if report_type == 'summary':
+            # Summary report data
+            total_transactions = transactions.count()
+            total_volume = transactions.aggregate(total=Sum('credit_amount'))['total'] or 0
+            total_value = transactions.aggregate(total=Sum('total_price'))['total'] or 0
+            avg_price = transactions.aggregate(avg=Avg(F('total_price') / F('credit_amount')))['avg'] or 0
+            buy_count = transactions.count()
+            sell_count = transactions.count()
+            
+            context.update({
+                'total_transactions': total_transactions,
+                'total_volume': total_volume,
+                'total_value': total_value,
+                'avg_price': avg_price,
+                'buy_count': buy_count,
+                'sell_count': sell_count,
+            })
+            
+        elif report_type == 'transactions':
+            # Transaction report data - list all transactions
+            context['transactions'] = transactions.order_by('-created_at')
+            
+        elif report_type == 'price':
+            # Price analytics report
+            latest_transaction = transactions.order_by('-created_at').first()
+            current_price = latest_transaction.total_price / latest_transaction.credit_amount if latest_transaction else 0
+            avg_price = transactions.aggregate(avg=Avg(F('total_price') / F('credit_amount')))['avg'] or 0
+            highest_price = transactions.annotate(price=F('total_price') / F('credit_amount')).aggregate(max=Max('price'))['max'] or 0
+            lowest_price = transactions.annotate(price=F('total_price') / F('credit_amount')).aggregate(min=Min('price'))['min'] or 0
+            
+            # Group by day for price changes
+            daily_prices = []
+            # Implementation of daily price changes would go here
+            # This would typically involve more complex queries with aggregation by date
+            
+            context.update({
+                'current_price': current_price,
+                'avg_price': avg_price,
+                'highest_price': highest_price,
+                'lowest_price': lowest_price,
+                'price_changes': daily_prices,
+            })
+            
+        elif report_type == 'employer_activity':
+            # Employer activity report
+            # Get top buyers and sellers by volume
+            top_buyers = transactions.values('buyer__company_name').annotate(
+                transaction_count=Count('id'),
+                volume=Sum('credit_amount'),
+                total_value=Sum('total_price')
+            ).order_by('-volume')[:5]
+            
+            top_sellers = transactions.values('seller__company_name').annotate(
+                transaction_count=Count('id'),
+                volume=Sum('credit_amount'),
+                total_value=Sum('total_price')
+            ).order_by('-volume')[:5]
+            
+            context.update({
+                'top_buyers': top_buyers,
+                'top_sellers': top_sellers,
+            })
+            
+        return context
+
+@login_required
+@bank_required
+def export_report(request, report_type, date_range, format_type):
+    """Export a report in the specified format"""
+    # Calculate the date range
+    end_date = timezone.now()
+    if date_range == '7d':
+        start_date = end_date - timedelta(days=7)
+    elif date_range == '30d':
+        start_date = end_date - timedelta(days=30)
+    elif date_range == '90d':
+        start_date = end_date - timedelta(days=90)
+    elif date_range == '1y':
+        start_date = end_date - timedelta(days=365)
+    else:
+        # Default to 7 days
+        start_date = end_date - timedelta(days=7)
+    
+    # Get transactions for the specified date range
+    transactions = MarketplaceTransaction.objects.filter(
+        created_at__gte=start_date,
+        created_at__lte=end_date
+    ).order_by('-created_at')
+    
+    if format_type == 'csv':
+        # Generate CSV response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{report_type}_report_{date_range}.csv"'
+        
+        writer = csv.writer(response)
+        
+        if report_type == 'summary':
+            # Summary report CSV
+            writer.writerow(['Report Type', 'Date Range', 'Generated At'])
+            writer.writerow(['Summary Report', date_range, timezone.now().strftime('%Y-%m-%d %H:%M:%S')])
+            writer.writerow([])
+            
+            total_transactions = transactions.count()
+            total_volume = transactions.aggregate(total=Sum('credit_amount'))['total'] or 0
+            total_value = transactions.aggregate(total=Sum('total_price'))['total'] or 0
+            avg_price = transactions.aggregate(avg=Avg(F('total_price') / F('credit_amount')))['avg'] or 0
+            buy_count = transactions.count()
+            sell_count = transactions.count()
+            
+            writer.writerow(['Total Transactions', 'Total Volume', 'Total Value', 'Avg. Price', 'Buy Transactions', 'Sell Transactions'])
+            writer.writerow([total_transactions, total_volume, total_value, avg_price, buy_count, sell_count])
+            
+        elif report_type == 'transactions':
+            # Transaction report CSV
+            writer.writerow(['Date', 'Transaction ID', 'Buyer', 'Seller', 'Volume', 'Price', 'Total Value', 'Status'])
+            
+            for transaction in transactions:
+                # Calculate price per credit from total price and credit amount
+                price_per_credit = transaction.total_price / transaction.credit_amount if transaction.credit_amount > 0 else 0
+                
+                writer.writerow([
+                    transaction.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    transaction.id,
+                    transaction.buyer.company_name if transaction.buyer else 'N/A',
+                    transaction.seller.company_name if transaction.seller else 'N/A',
+                    transaction.credit_amount,
+                    round(price_per_credit, 2),
+                    transaction.total_price,
+                    transaction.status
+                ])
+                
+        elif report_type == 'price':
+            # Price report CSV
+            writer.writerow(['Date', 'Price'])
+            
+            # Group by day for price data
+            # This is a simplified example - in a real application, you would aggregate by day
+            for transaction in transactions:
+                if transaction.credit_amount > 0:
+                    price_per_credit = transaction.total_price / transaction.credit_amount
+                    writer.writerow([
+                        transaction.created_at.strftime('%Y-%m-%d'),
+                        round(price_per_credit, 2)
+                    ])
+                
+        elif report_type == 'employer_activity':
+            # Employer activity CSV
+            writer.writerow(['Employer', 'Total Buy Volume', 'Total Sell Volume'])
+            
+            # This is a simplified example - in a real application, you would 
+            # aggregate by employer with more complex queries
+            employers = {}
+            
+            # Get buy data
+            buyer_data = transactions.values('buyer__company_name').annotate(
+                buy_volume=Sum('credit_amount')
+            )
+            for item in buyer_data:
+                company_name = item['buyer__company_name']
+                if company_name not in employers:
+                    employers[company_name] = {'buy': 0, 'sell': 0}
+                employers[company_name]['buy'] = item['buy_volume']
+            
+            # Get sell data
+            seller_data = transactions.values('seller__company_name').annotate(
+                sell_volume=Sum('credit_amount')
+            )
+            for item in seller_data:
+                company_name = item['seller__company_name']
+                if company_name not in employers:
+                    employers[company_name] = {'buy': 0, 'sell': 0}
+                employers[company_name]['sell'] = item['sell_volume']
+            
+            for employer, data in employers.items():
+                writer.writerow([
+                    employer,
+                    data['buy'],
+                    data['sell']
+                ])
+        
+        return response
+        
+    elif format_type == 'pdf':
+        # In a real application, you would use a PDF library like ReportLab or WeasyPrint
+        # For this example, we'll return a simple message
+        return HttpResponse("PDF export would be implemented here with a PDF generation library.")
+    
+    # Default response if format isn't supported
+    return redirect('bank:bank_reports') 

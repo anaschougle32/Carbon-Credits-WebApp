@@ -346,7 +346,9 @@
     /* Add a loading indicator for chart initialization */
     .chart-container {
         position: relative;
-        min-height: 200px;
+        height: 300px !important;
+        width: 100% !important;
+        margin-bottom: 20px;
     }
     
     /* Section specific styles */
@@ -723,6 +725,7 @@
                         <canvas id="breakdownChart" height="250"></canvas>
                     </div>
                 </div>
+
             </div>
 
             <!-- Top Traders -->
@@ -810,59 +813,21 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM fully loaded");
-
-    // Change tab buttons to scroll to sections
+    console.log("Document ready, setting up trading page");
+    
+    // Navigation buttons logic
     const pendingBtn = document.getElementById('pending-btn');
     const marketplaceBtn = document.getElementById('marketplace-btn');
     const completedBtn = document.getElementById('completed-btn');
     const analyticsBtn = document.getElementById('analytics-btn');
-    const sections = document.querySelectorAll('section');
-
-    // Add intersection observer to highlight active section in nav
-    const observerOptions = {
-        root: null,
-        rootMargin: '-100px 0px -80% 0px', // Adjust the top margin to account for the sticky header
-        threshold: 0
-    };
-
-    const navObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                // Update the active button based on which section is visible
-                const sectionId = entry.target.id;
-                document.querySelectorAll('.nav-button').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
-            }
-        });
-    }, observerOptions);
-
-    // Observe all sections
-    sections.forEach(section => {
-        navObserver.observe(section);
-    });
-
+    
     function scrollToSection(sectionId) {
-        console.log(`Scrolling to section: ${sectionId}`);
         const section = document.getElementById(sectionId);
         if (section) {
-            // Update active button
-            document.querySelectorAll('.nav-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
-            
-            // Scroll to section with offset for header
-            const yOffset = -20; 
-            const y = section.getBoundingClientRect().top + window.pageYOffset + yOffset;
-            window.scrollTo({top: y, behavior: 'smooth'});
-        } else {
-            console.error(`Section #${sectionId} not found`);
+            section.scrollIntoView({ behavior: 'smooth' });
         }
     }
     
@@ -891,211 +856,152 @@ document.addEventListener('DOMContentLoaded', function() {
         analyticsBtn.addEventListener('click', function(e) {
             e.preventDefault();
             scrollToSection("analytics-section");
-            // Initialize charts when scrolling to the analytics section
-            setTimeout(initCharts, 100);
         });
     }
     
-    // Buy Credits Modal
-    const buyCreditsModal = document.getElementById('buyCreditsModal');
-    const closeBtn = buyCreditsModal.querySelector('.close');
-    const cancelBtn = document.getElementById('cancelBuyBtn');
-    const confirmBtn = document.getElementById('confirmBuyBtn');
+    // Delay chart creation to ensure DOM is ready
+    setTimeout(function() {
+        createChartsManually();
+    }, 1000);
     
-    // Get all buttons that open the buy credits modal
-    const buyButtons = document.querySelectorAll('.buy-credits-btn');
-    const sellerName = document.getElementById('seller');
-    const offerIdInput = document.getElementById('offerId');
-    
-    // Add click event to each buy button
-    buyButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Get data from button attributes
-            const offerId = this.getAttribute('data-offer-id');
-            const seller = this.getAttribute('data-seller');
-            const credits = this.getAttribute('data-credits');
-            const price = this.getAttribute('data-price');
-            
-            // Populate the modal fields
-            sellerName.textContent = seller || 'Unknown Seller';
-            offerIdInput.value = offerId || '';
-            
-            // Calculate and set total price
-            calculateTotal();
-            
-            // Show the modal
-            buyCreditsModal.classList.remove('hidden');
-        });
-    });
-    
-    // Close modal when clicking the close button
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function() {
-            buyCreditsModal.classList.add('hidden');
-        });
-    }
-    
-    // Close modal when clicking outside of it
-    window.addEventListener('click', function(event) {
-        if (event.target == buyCreditsModal) {
-            buyCreditsModal.classList.add('hidden');
-        }
-    });
-    
-    // Calculate total price when amount or price changes
-    const creditAmount = document.getElementById('creditAmount');
-    const pricePerCredit = document.getElementById('pricePerCredit');
-    const totalPrice = document.getElementById('totalPrice');
-    
-    if (creditAmount && pricePerCredit && totalPrice) {
-        creditAmount.addEventListener('input', calculateTotal);
-        pricePerCredit.addEventListener('input', calculateTotal);
-    }
-    
-    // Function to calculate total price
-    function calculateTotal() {
-        const amount = parseFloat(creditAmount.value) || 0;
-        const price = parseFloat(pricePerCredit.value) || 0;
-        totalPrice.value = (amount * price).toFixed(2);
-    }
-    
-    // Initialize Analytics Charts
-    function initCharts() {
-        // Check if charts already initialized to prevent duplicates
-        if (window.chartsInitialized) return;
+    function createChartsManually() {
+        console.log("Creating charts manually");
         
-        console.log("Initializing charts");
-        window.chartsInitialized = true;
-        
-        // Sample data - replace with real data in production
+        // Sample data
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
         const volumeData = [30, 40, 35, 50, 49, 60, 70, 91, 125];
         const priceData = [15, 17, 16, 14, 18, 19, 22, 21, 20];
         
-        // Trading Volume chart
-        const volumeCtx = document.getElementById('volumeChart');
-        if (volumeCtx) {
-            console.log("Creating volume chart");
-            new Chart(volumeCtx, {
-                type: 'line',
-                data: {
-                    labels: months,
-                    datasets: [{
-                        label: 'Trading Volume',
-                        data: volumeData,
-                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
-                        borderColor: 'rgba(37, 99, 235, 1)',
-                        borderWidth: 2,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+        // Draw volume chart directly with Canvas API if Chart.js fails
+        drawVolumeChart();
+        drawPriceChart();
+        drawBreakdownChart();
+        
+        function drawVolumeChart() {
+            try {
+                const ctx = document.getElementById('volumeChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: months,
+                        datasets: [{
+                            label: 'Trading Volume',
+                            data: volumeData,
+                            backgroundColor: 'rgba(37, 99, 235, 0.5)',
+                            borderColor: 'rgba(37, 99, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
                     }
-                }
-            });
-        } else {
-            console.log("Volume chart element not found");
+                });
+                console.log("Volume chart created");
+            } catch (err) {
+                console.error("Failed to create volume chart:", err);
+                fallbackDrawing('volumeChart', 'Volume Chart', volumeData);
+            }
         }
         
-        // Price Trends chart
-        const priceCtx = document.getElementById('priceChart');
-        if (priceCtx) {
-            console.log("Creating price chart");
-            new Chart(priceCtx, {
-                type: 'line',
-                data: {
-                    labels: months,
-                    datasets: [{
-                        label: 'Avg. Price per Credit',
-                        data: priceData,
-                        backgroundColor: 'rgba(5, 150, 105, 0.2)',
-                        borderColor: 'rgba(5, 150, 105, 1)',
-                        borderWidth: 2,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+        function drawPriceChart() {
+            try {
+                const ctx = document.getElementById('priceChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: months,
+                        datasets: [{
+                            label: 'Price per Credit',
+                            data: priceData,
+                            backgroundColor: 'rgba(5, 150, 105, 0.2)',
+                            borderColor: 'rgba(5, 150, 105, 1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
                     }
-                }
-            });
-        } else {
-            console.log("Price chart element not found");
+                });
+                console.log("Price chart created");
+            } catch (err) {
+                console.error("Failed to create price chart:", err);
+                fallbackDrawing('priceChart', 'Price Trends', priceData);
+            }
         }
         
-        // Trading Breakdown chart
-        const breakdownCtx = document.getElementById('breakdownChart');
-        if (breakdownCtx) {
-            console.log("Creating breakdown chart");
-            new Chart(breakdownCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Company A', 'Company B', 'Company C', 'Others'],
-                    datasets: [{
-                        data: [45, 25, 20, 10],
-                        backgroundColor: [
-                            'rgba(37, 99, 235, 0.8)',
-                            'rgba(5, 150, 105, 0.8)',
-                            'rgba(245, 158, 11, 0.8)',
-                            'rgba(107, 114, 128, 0.8)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
+        function drawBreakdownChart() {
+            try {
+                const ctx = document.getElementById('breakdownChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Company A', 'Company B', 'Company C', 'Others'],
+                        datasets: [{
+                            data: [45, 25, 20, 10],
+                            backgroundColor: [
+                                'rgba(37, 99, 235, 0.8)',
+                                'rgba(5, 150, 105, 0.8)',
+                                'rgba(245, 158, 11, 0.8)',
+                                'rgba(107, 114, 128, 0.8)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
                     }
-                }
-            });
-        }
-    }
-    
-    // Initialize charts when page loads
-    if (document.getElementById('analytics-section')) {
-        // Call initCharts when analytics button is clicked
-        if (analyticsBtn) {
-            analyticsBtn.addEventListener('click', initCharts);
+                });
+                console.log("Breakdown chart created");
+            } catch (err) {
+                console.error("Failed to create breakdown chart:", err);
+                const canvas = document.getElementById('breakdownChart');
+                const ctx = canvas.getContext('2d');
+                ctx.font = '20px Arial';
+                ctx.fillText('Trading Breakdown Chart', 50, 50);
+            }
         }
         
-        // Check if analytics section is visible in viewport
-        const chartObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    // Delay chart initialization slightly to ensure DOM is ready
-                    setTimeout(initCharts, 300);
-                    chartObserver.disconnect();
-                }
-            });
-        }, {
-            rootMargin: '0px 0px -200px 0px',
-            threshold: 0.1
-        });
-        
-        chartObserver.observe(document.getElementById('analytics-section'));
-    }
-    
-    // Refresh button functionality
-    const refreshButton = document.getElementById('refresh-button');
-    if (refreshButton) {
-        refreshButton.addEventListener('click', function() {
-            location.reload();
-        });
+        // Fallback function to draw simple chart if Chart.js fails
+        function fallbackDrawing(canvasId, title, data) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw title
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#333';
+            ctx.fillText(title, 20, 30);
+            
+            // Draw axes
+            ctx.beginPath();
+            ctx.moveTo(40, 50);
+            ctx.lineTo(40, 250);
+            ctx.lineTo(350, 250);
+            ctx.strokeStyle = '#999';
+            ctx.stroke();
+            
+            // Draw data bars
+            const barWidth = 280 / data.length;
+            const maxValue = Math.max(...data);
+            const scale = 180 / maxValue;
+            
+            ctx.fillStyle = 'rgba(37, 99, 235, 0.6)';
+            for (let i = 0; i < data.length; i++) {
+                const barHeight = data[i] * scale;
+                ctx.fillRect(
+                    50 + i * barWidth,
+                    250 - barHeight,
+                    barWidth - 5,
+                    barHeight
+                );
+            }
+        }
     }
 });
 </script>

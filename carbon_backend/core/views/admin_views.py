@@ -7,6 +7,13 @@ from django.contrib import messages
 from users.models import CustomUser, EmployerProfile, EmployeeProfile, Location
 from trips.models import Trip, CarbonCredit
 from django.utils import timezone
+import csv
+import io
+from django.urls import reverse
+from decimal import Decimal
+
+# Import marketplace models if needed
+from marketplace.models import MarketOffer, MarketplaceTransaction
 
 def is_super_admin(user):
     return user.is_authenticated and user.is_super_admin
@@ -27,10 +34,26 @@ def dashboard(request):
     
     # Get from the trip and carbon credit models
     total_trips = Trip.objects.count()
-    total_credits = CarbonCredit.objects.aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # Count new users in last 30 days
+    thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
+    new_user_count = CustomUser.objects.filter(date_joined__gte=thirty_days_ago).count()
+    
+    # Count recent trips in last 7 days
+    seven_days_ago = timezone.now() - timezone.timedelta(days=7)
+    recent_trip_count = Trip.objects.filter(start_time__gte=seven_days_ago).count()
+    
+    # Get carbon credits with proper formatting
+    total_credits_raw = CarbonCredit.objects.aggregate(Sum('amount'))['amount__sum'] or 0
+    total_credits = round(float(total_credits_raw), 2)
     
     # Get pending employers for approval
     pending_employers = EmployerProfile.objects.filter(approved=False).select_related('user').order_by('-created_at')[:5]
+    
+    # Get recent trips for the dashboard
+    recent_trips = Trip.objects.select_related(
+        'employee', 'employee__user', 'employee__employer', 'start_location', 'end_location'
+    ).order_by('-start_time')[:10]
     
     context = {
         'total_users': total_users,
@@ -43,8 +66,12 @@ def dashboard(request):
         'pending_approval': pending_approval,
         'pending_approval_count': pending_approval,
         'total_trips': total_trips,
+        'trip_count': total_trips,
+        'recent_trip_count': recent_trip_count,
+        'new_user_count': new_user_count,
         'total_credits': total_credits,
         'pending_employers': pending_employers,
+        'recent_trips': recent_trips,
     }
     
     return render(request, 'admin/dashboard.html', context)
@@ -478,6 +505,169 @@ def reports(request):
     
     return render(request, 'admin/reports.html', context)
 
+@login_required
+@user_passes_test(is_super_admin)
+def export_reports(request):
+    """
+    Export reports data in CSV or PDF format
+    """
+    report_type = request.GET.get('report_type', 'summary')
+    date_range = request.GET.get('date_range', 'all')
+    format = request.GET.get('format', 'csv')
+    
+    # Get data based on report type
+    data = []
+    
+    if report_type == 'summary':
+        # User statistics
+        total_users = CustomUser.objects.count()
+        total_employees = EmployeeProfile.objects.count()
+        total_employers = EmployerProfile.objects.count()
+        
+        # Trip statistics
+        total_trips = Trip.objects.count()
+        total_carbon_saved = Trip.objects.aggregate(Sum('carbon_savings'))['carbon_savings__sum'] or 0
+        
+        # Calculate average trips per employee
+        avg_trips_per_user = 0
+        if total_employees > 0:
+            avg_trips_per_user = total_trips / total_employees
+            
+        # Credit statistics
+        total_credits = CarbonCredit.objects.aggregate(Sum('amount'))['amount__sum'] or 0
+        redeemed_credits = CarbonCredit.objects.filter(status='redeemed').aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        # Summary data
+        data = [
+            ['Metric', 'Value'],
+            ['Total Users', total_users],
+            ['Total Employees', total_employees],
+            ['Total Employers', total_employers],
+            ['Total Trips', total_trips],
+            ['Total Carbon Saved (kg)', total_carbon_saved],
+            ['Average Trips per User', round(avg_trips_per_user, 2)],
+            ['Total Credits', total_credits],
+            ['Redeemed Credits', redeemed_credits]
+        ]
+    
+    elif report_type == 'trips':
+        # Get trips based on date range
+        trips = Trip.objects.all().select_related('employee', 'employee__user').order_by('-start_time')
+        
+        # Apply date filter if needed
+        if date_range == '7d':
+            trips = trips.filter(start_time__gte=timezone.now() - timezone.timedelta(days=7))
+        elif date_range == '30d':
+            trips = trips.filter(start_time__gte=timezone.now() - timezone.timedelta(days=30))
+        elif date_range == '90d':
+            trips = trips.filter(start_time__gte=timezone.now() - timezone.timedelta(days=90))
+        
+        # Headers
+        data.append(['Trip ID', 'Employee', 'Employer', 'Start Time', 'End Time', 'Transport Mode', 'Distance (km)', 'Carbon Savings (kg)', 'Credits Earned', 'Status'])
+        
+        # Trip data
+        for trip in trips:
+            data.append([
+                trip.id,
+                trip.employee.user.get_full_name(),
+                trip.employee.employer.company_name,
+                trip.start_time.strftime('%Y-%m-%d %H:%M'),
+                trip.end_time.strftime('%Y-%m-%d %H:%M') if trip.end_time else 'N/A',
+                trip.get_transport_mode_display(),
+                trip.distance,
+                trip.carbon_savings,
+                trip.carbon_credits,
+                'Verified' if trip.is_verified else 'Pending'
+            ])
+    
+    elif report_type == 'credits':
+        # Get credits based on date range
+        credits = CarbonCredit.objects.all().order_by('-timestamp')
+        
+        # Apply date filter if needed
+        if date_range == '7d':
+            credits = credits.filter(timestamp__gte=timezone.now() - timezone.timedelta(days=7))
+        elif date_range == '30d':
+            credits = credits.filter(timestamp__gte=timezone.now() - timezone.timedelta(days=30))
+        elif date_range == '90d':
+            credits = credits.filter(timestamp__gte=timezone.now() - timezone.timedelta(days=90))
+        
+        # Headers
+        data.append(['Credit ID', 'Amount', 'Source Type', 'Owner Type', 'Owner ID', 'Status', 'Timestamp', 'Expiry Date'])
+        
+        # Credit data
+        for credit in credits:
+            data.append([
+                credit.id,
+                credit.amount,
+                'Trip' if credit.source_trip else 'System',
+                credit.owner_type,
+                credit.owner_id,
+                credit.status,
+                credit.timestamp.strftime('%Y-%m-%d %H:%M'),
+                credit.expiry_date.strftime('%Y-%m-%d') if credit.expiry_date else 'N/A'
+            ])
+    
+    elif report_type == 'employers':
+        # Get all employers
+        employers = EmployerProfile.objects.all().order_by('company_name')
+        
+        # Headers
+        data.append(['Company Name', 'Industry', 'Total Employees', 'Total Trips', 'Total Carbon Saved (kg)', 'Total Credits'])
+        
+        # Employer data
+        for employer in employers:
+            employee_count = employer.employees.count()
+            
+            # Get trips for this employer's employees
+            employee_ids = employer.employees.values_list('id', flat=True)
+            trips = Trip.objects.filter(employee__id__in=employee_ids)
+            trip_count = trips.count()
+            carbon_saved = trips.aggregate(Sum('carbon_savings'))['carbon_savings__sum'] or 0
+            
+            # Get credits for this employer
+            credits = CarbonCredit.objects.filter(owner_type='employer', owner_id=employer.id)
+            total_credits = credits.aggregate(Sum('amount'))['amount__sum'] or 0
+            
+            data.append([
+                employer.company_name,
+                employer.industry,
+                employee_count,
+                trip_count,
+                carbon_saved,
+                total_credits
+            ])
+    
+    # Generate export based on format
+    if format == 'csv':
+        # Create CSV response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="carbon_credits_{report_type}_report.csv"'
+        
+        # Write CSV data
+        writer = csv.writer(response)
+        for row in data:
+            writer.writerow(row)
+        
+        return response
+    
+    elif format == 'pdf':
+        # For PDF, a more complex implementation would be needed with a PDF library
+        # This is a simplified version that returns a text response
+        response = HttpResponse(content_type='text/plain')
+        response['Content-Disposition'] = f'attachment; filename="carbon_credits_{report_type}_report.txt"'
+        
+        # Write data as text
+        output = io.StringIO()
+        for row in data:
+            output.write('\t'.join([str(item) for item in row]) + '\n')
+        
+        response.write(output.getvalue())
+        return response
+    
+    # Default fallback - return JSON
+    return JsonResponse({'data': data})
+
 # Profile views
 @login_required
 @user_passes_test(is_super_admin)
@@ -558,4 +748,66 @@ def admin_change_password(request):
         return redirect('admin_profile')
     
     # For GET requests, redirect to profile page
-    return redirect('admin_profile') 
+    return redirect('admin_profile')
+
+@login_required
+@user_passes_test(lambda u: u.is_super_admin or u.is_bank_admin)
+def employer_approval(request, employer_id):
+    """
+    Handle employer account approval or rejection.
+    """
+    try:
+        employer = EmployerProfile.objects.get(id=employer_id, approved=False)
+        action = request.GET.get('action', '')
+        
+        if action == 'approve':
+            employer.approved = True
+            employer.save()
+            
+            # Also approve the user
+            user = employer.user
+            user.approved = True
+            user.save()
+            
+            # Allocate initial carbon credits to the employer (if not already done)
+            if not employer.initial_credits_allocated:
+                # Determine initial credit amount based on company size or other factors
+                # For now, we'll use a fixed amount of 1000 credits
+                initial_credits = 1000
+                
+                # Create carbon credit record
+                CarbonCredit.objects.create(
+                    amount=initial_credits,
+                    source_trip=None,  # No associated trip for initial credits
+                    owner_type='employer',
+                    owner_id=employer.id,
+                    timestamp=timezone.now(),
+                    status='active',
+                    expiry_date=timezone.now() + timezone.timedelta(days=365)  # 1 year validity
+                )
+                
+                # Mark as allocated
+                employer.initial_credits_allocated = True
+                employer.save()
+                
+                messages.success(
+                    request, 
+                    f"Employer {employer.company_name} has been approved and allocated {initial_credits} initial carbon credits."
+                )
+            else:
+                messages.success(request, f"Employer {employer.company_name} has been approved.")
+                
+        elif action == 'reject':
+            # Implement rejection logic here
+            # You may want to send a notification to the employer
+            # For now, we'll just delete the employer account
+            user = employer.user
+            employer.delete()
+            user.delete()
+            
+            messages.success(request, "Employer account has been rejected and removed.")
+            
+    except EmployerProfile.DoesNotExist:
+        messages.error(request, "Employer not found or already approved.")
+        
+    return redirect('admin_pending_employers') 

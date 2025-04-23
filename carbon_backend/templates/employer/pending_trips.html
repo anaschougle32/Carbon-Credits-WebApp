@@ -134,14 +134,14 @@
                         {% endif %}
                         
                         <div class="mt-6 flex justify-end space-x-3">
-                            <form method="post" action="{% url 'employer:employer_trip_approval' trip.id %}" class="inline-block">
+                            <form method="post" action="{% url 'employer:trip_approval' trip.id %}" class="inline-block">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="reject">
                                 <button type="submit" class="px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 text-sm font-medium">
                                     Reject
                                 </button>
                             </form>
-                            <form method="post" action="{% url 'employer:employer_trip_approval' trip.id %}" class="inline-block">
+                            <form method="post" action="{% url 'employer:trip_approval' trip.id %}" class="inline-block">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="approve">
                                 <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium">

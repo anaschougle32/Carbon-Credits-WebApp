@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} - Carbon Credits Platform{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse" id="sidebarMenu">
+            <div class="sidebar bg-dark text-white">
+                <div class="sidebar-header">
+                    <h3>Carbon Bank</h3>
+                </div>
+                <ul class="list-unstyled components">
+                    <li {% if active_page == 'dashboard' %}class="active"{% endif %}>
+                        <a href="{% url 'bank:bank_dashboard' %}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                    </li>
+                    <li {% if active_page == 'trading' %}class="active"{% endif %}>
+                        <a href="{% url 'bank:bank_trading' %}"><i class="fas fa-exchange-alt"></i> Trading</a>
+                    </li>
+                    <li {% if active_page == 'reports' %}class="active"{% endif %}>
+                        <a href="{% url 'bank:bank_reports' %}"><i class="fas fa-chart-line"></i> Reports</a>
+                    </li>
+                    <li {% if active_page == 'employers' %}class="active"{% endif %}>
+                        <a href="{% url 'bank:bank_employers' %}"><i class="fas fa-building"></i> Employers</a>
+                    </li>
+                    <li {% if active_page == 'profile' %}class="active"{% endif %}>
+                        <a href="{% url 'bank:profile' %}"><i class="fas fa-user"></i> Profile</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">{{ page_title }}</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        {% block header_buttons %}{% endblock %}
+                    </div>
+                </div>
+            </div>
+            
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% block bank_content %}
+            {% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %} 

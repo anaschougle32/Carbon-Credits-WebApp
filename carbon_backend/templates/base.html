@@ -261,9 +261,9 @@
                         <a href="{% url 'bank:bank_trading' %}" class="nav-link {% if request.resolver_match.url_name == 'bank_trading' %}active{% endif %}">Trading</a>
                         {% elif user.is_employer %}
                         <a href="{% url 'employer:employer_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'employer_dashboard' %}active{% endif %}">Dashboard</a>
-                        <a href="{% url 'employer:employer_employee_list' %}" class="nav-link {% if request.resolver_match.url_name == 'employer_employee_list' %}active{% endif %}">Employees</a>
-                        <a href="{% url 'employer:employer_locations' %}" class="nav-link {% if request.resolver_match.url_name == 'employer_locations' %}active{% endif %}">Locations</a>
-                        <a href="{% url 'employer:employer_trading' %}" class="nav-link {% if request.resolver_match.url_name == 'employer_trading' %}active{% endif %}">Trading</a>
+                        <a href="{% url 'employer:employees' %}" class="nav-link {% if request.resolver_match.url_name == 'employees' %}active{% endif %}">Employees</a>
+                        <a href="{% url 'employer:locations' %}" class="nav-link {% if request.resolver_match.url_name == 'locations' %}active{% endif %}">Locations</a>
+                        <a href="{% url 'employer:trading' %}" class="nav-link {% if request.resolver_match.url_name == 'trading' %}active{% endif %}">Trading</a>
                         {% elif user.is_employee %}
                         <a href="{% url 'employee_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'employee_dashboard' %}active{% endif %}">Dashboard</a>
                         <a href="{% url 'employee_trip_log' %}" class="nav-link {% if request.resolver_match.url_name == 'employee_trip_log' %}active{% endif %}">Log Trip</a>

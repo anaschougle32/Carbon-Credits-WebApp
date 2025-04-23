@@ -81,6 +81,8 @@ class EmployerProfile(models.Model):
     industry = models.CharField(max_length=100)
     approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
+    initial_credits_allocated = models.BooleanField(default=False)
+    wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     def __str__(self):
         return self.company_name
@@ -101,6 +103,8 @@ class EmployeeProfile(models.Model):
     )
     approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
+    wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    department = models.CharField(max_length=100, blank=True)
     
     def __str__(self):
         return f"{self.user.email} ({self.employer.company_name})"

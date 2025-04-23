@@ -18,6 +18,7 @@ urlpatterns = [
     
     # Reports
     path('reports/', admin_views.reports, name='admin_reports'),
+    path('reports/export/', admin_views.export_reports, name='admin_export_reports'),
     
     # Profile
     path('profile/', admin_views.admin_profile, name='admin_profile'),

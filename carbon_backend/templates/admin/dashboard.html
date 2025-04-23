@@ -93,7 +93,7 @@
                     </div>
                     <div class="ml-4">
                         <h3 class="text-lg font-medium text-gray-500">Carbon Credits</h3>
-                        <p class="text-3xl font-bold text-gray-800">{{ total_credits }}</p>
+                        <p class="text-3xl font-bold text-gray-800 truncate" title="{{ total_credits }}">{{ total_credits|floatformat:2 }}</p>
                         <div class="text-sm text-gray-500 mt-1">
                             Across {{ employer_count }} employers
                         </div>
@@ -278,68 +278,69 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // User Roles Pie Chart
         var userRolesCtx = document.getElementById('userRolesChart').getContext('2d');
-        var userRolesChart = new Chart(userRolesCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Employees', 'Employers', 'Bank Admins', 'System Admins'],
-                datasets: [{
-                    data: [
-                        {{ employee_count|default:0 }}, 
-                        {{ employer_count|default:0 }}, 
-                        {{ bank_admin_count|default:0 }}, 
-                        {{ super_admin_count|default:0 }}
-                    ],
-                    backgroundColor: [
-                        '#60A5FA', // blue
-                        '#34D399', // green
-                        '#A78BFA', // purple
-                        '#F87171'  // red
-                    ],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        position: 'bottom'
+        if (userRolesCtx) {
+            var userRolesChart = new Chart(userRolesCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Employees', 'Employers', 'Bank Admins', 'System Admins'],
+                    datasets: [{
+                        data: JSON.parse('[{{ employee_count|default:0 }}, {{ employer_count|default:0 }}, {{ bank_admin_count|default:0 }}, {{ super_admin_count|default:0 }}]'),
+                        backgroundColor: [
+                            '#60A5FA', // blue
+                            '#34D399', // green
+                            '#A78BFA', // purple
+                            '#F87171'  // red
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
         
         // Credits Over Time Chart
         var creditsCtx = document.getElementById('creditsChart').getContext('2d');
-        var creditsChart = new Chart(creditsCtx, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [{
-                    label: 'Credits Earned',
-                    data: [120, 190, 300, 250, 420, 380],
-                    backgroundColor: 'rgba(52, 211, 153, 0.2)',
-                    borderColor: 'rgba(52, 211, 153, 1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
+        if (creditsCtx) {
+            var creditsChart = new Chart(creditsCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Credits Earned',
+                        data: [120, 190, 300, 250, 420, 380],
+                        backgroundColor: 'rgba(52, 211, 153, 0.2)',
+                        borderColor: 'rgba(52, 211, 153, 1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     });
 </script>
 {% endblock %} 
