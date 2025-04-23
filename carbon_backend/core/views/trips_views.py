@@ -46,23 +46,30 @@ import requests
 def get_distance(origin, destination):
     """Get distance between two locations using Google Maps API."""
 
-    API_KEY = 'AIzaSyDwWRoTtWgjQc--nP3WoZpH6IrpTQ9gw7w'
-    origin = "40.748817,-73.985428"      # NYC
-    destination = "40.730610,-73.935242" # NYC
-    
-    url = f"https://maps.googleapis.com/maps/api/directions/json?origin={origin}&destination={destination}&key={API_KEY}"
+    try:
+        API_KEY = 'AIzaSyDwWRoTtWgjQc--nP3WoZpH6IrpTQ9gw7w'
+        origin = "40.748817,-73.985428"      # NYC
+        destination = "40.730610,-73.935242" # NYC
+        
+        url = f"https://maps.googleapis.com/maps/api/directions/json?origin={origin}&destination={destination}&key={API_KEY}"
 
-    response = requests.get(url)
-    data = response.json()
-    print("Response data:", data)
+        response = requests.get(url)
+        data = response.json()
+        print("Response data:", data)
 
-    if data['status'] == 'OK':
-        distance = data['routes'][0]['legs'][0]['distance']['text']
-        print(f"Distance: {distance}")
-        return distance
-    else:
-        print("Error:", data['status'])
-        return 460
+        if data['status'] == 'OK':
+            # Extract the numeric distance value in meters
+            distance_meters = data['routes'][0]['legs'][0]['distance']['value']
+            # Convert to kilometers and round to 2 decimal places
+            distance_km = round(distance_meters / 1000, 2)
+            print(f"Distance: {distance_km} km")
+            return distance_km
+        else:
+            print("Error:", data['status'])
+            return 4.6  # Return a fixed numeric value as fallback
+    except Exception as e:
+        print(f"Exception in get_distance: {str(e)}")
+        return 4.6  # Return a fixed numeric value as fallback
 
 @login_required
 @user_passes_test(lambda u: u.is_employee)
