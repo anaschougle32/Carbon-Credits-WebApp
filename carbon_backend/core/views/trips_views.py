@@ -271,8 +271,8 @@ def create_trip(request):
             trip.proof_image = data
             trip.verification_status = 'pending'
         else:
-            # Without proof, trip is automatically approved (for demonstration)
-            trip.verification_status = 'verified'
+            # All trips require employer approval
+            trip.verification_status = 'pending'
         
         # Save the trip
         trip.save()

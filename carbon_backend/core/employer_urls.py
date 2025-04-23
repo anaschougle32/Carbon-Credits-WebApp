@@ -4,7 +4,7 @@ from core.views.employer_views import (
     pending_trips, trip_approval, create_transaction, create_offer,
     mark_notification_read, employee_approval, invite_employee,
     location_add, location_edit, location_delete, location_set_primary,
-    profile, update_profile, change_password
+    profile, update_profile, change_password, employee_marketplace
 )
 
 app_name = 'employer'
@@ -25,6 +25,7 @@ urlpatterns = [
     path('trips/pending/', pending_trips, name='pending_trips'),
     path('trips/<int:trip_id>/approve/', trip_approval, name='trip_approval'),
     path('notifications/<int:notification_id>/mark-read/', mark_notification_read, name='mark_notification_read'),
+    path('employee-marketplace/', employee_marketplace, name='employee_marketplace'),
     
     # Profile
     path('profile/', profile, name='profile'),

@@ -5,43 +5,43 @@
         </h5>
         <ul class="nav flex-column">
             <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employer/dashboard/' %}active{% endif %}" href="{% url 'employer_dashboard' %}">
+                <a class="nav-link {% if request.path == '/employer/dashboard/' %}active{% endif %}" href="{% url 'employer:employer_dashboard' %}">
                     <i class="bi bi-speedometer2 me-2"></i>
                     Dashboard
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employer/employees/' %}active{% endif %}" href="{% url 'employer_employees' %}">
+                <a class="nav-link {% if request.path == '/employer/employees/' %}active{% endif %}" href="{% url 'employer:employees' %}">
                     <i class="bi bi-people me-2"></i>
                     Employees
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employer/locations/' %}active{% endif %}" href="{% url 'employer_locations' %}">
+                <a class="nav-link {% if request.path == '/employer/locations/' %}active{% endif %}" href="{% url 'employer:locations' %}">
                     <i class="bi bi-geo-alt me-2"></i>
                     Locations
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employer/pending_trips/' %}active{% endif %}" href="{% url 'employer_pending_trips' %}">
+                <a class="nav-link {% if request.path == '/employer/trips/pending/' %}active{% endif %}" href="{% url 'employer:pending_trips' %}">
                     <i class="bi bi-clock-history me-2"></i>
                     Pending Trips
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employer/trading/' %}active{% endif %}" href="{% url 'employer_trading' %}">
+                <a class="nav-link {% if request.path == '/employer/trading/' %}active{% endif %}" href="{% url 'employer:trading' %}">
                     <i class="bi bi-graph-up me-2"></i>
                     Trading
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employer/employee_marketplace/' %}active{% endif %}" href="{% url 'employer_employee_marketplace' %}">
+                <a class="nav-link {% if request.path == '/employer/employee-marketplace/' %}active{% endif %}" href="{% url 'employer:employee_marketplace' %}">
                     <i class="bi bi-currency-exchange me-2"></i>
                     Employee Marketplace
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employer/profile/' %}active{% endif %}" href="{% url 'employer_profile' %}">
+                <a class="nav-link {% if request.path == '/employer/profile/' %}active{% endif %}" href="{% url 'employer:profile' %}">
                     <i class="bi bi-person-circle me-2"></i>
                     Profile
                 </a>
