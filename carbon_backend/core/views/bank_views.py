@@ -970,4 +970,85 @@ def export_report(request, report_type, date_range, format_type):
         return HttpResponse("PDF export would be implemented here with a PDF generation library.")
     
     # Default response if format isn't supported
-    return redirect('bank:bank_reports') 
+    return redirect('bank:bank_reports')
+
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def generate_report(request):
+    """
+    API endpoint for generating report data via HTMX
+    """
+    report_type = request.GET.get('report-type', 'summary')
+    date_range = request.GET.get('date-range', '7d')
+    
+    # Get date range in actual dates
+    today = datetime.now().date()
+    if date_range == '7d':
+        start_date = today - timedelta(days=7)
+    elif date_range == '30d':
+        start_date = today - timedelta(days=30)
+    elif date_range == '90d':
+        start_date = today - timedelta(days=90)
+    elif date_range == '1y':
+        start_date = today - timedelta(days=365)
+    else:  # All time
+        start_date = None
+    
+    # For now, we'll return a simple template fragment
+    # In a real implementation, you would fetch actual data here
+    context = {
+        'report_type': report_type,
+        'date_range': date_range,
+        'start_date': start_date,
+        'end_date': today,
+    }
+    
+    return render(request, f'bank/reports/_{report_type}_report.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def export_report(request):
+    """
+    API endpoint for exporting reports as CSV, PDF, or Excel
+    """
+    report_type = request.GET.get('report_type', 'summary')
+    date_range = request.GET.get('date_range', '7d')
+    format_type = request.GET.get('format', 'csv')
+    
+    # Get date range in actual dates
+    today = datetime.now().date()
+    if date_range == '7d':
+        start_date = today - timedelta(days=7)
+    elif date_range == '30d':
+        start_date = today - timedelta(days=30)
+    elif date_range == '90d':
+        start_date = today - timedelta(days=90)
+    elif date_range == '1y':
+        start_date = today - timedelta(days=365)
+    else:  # All time
+        start_date = None
+    
+    # Example for CSV export - you would implement other formats similarly
+    if format_type == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{report_type}_report_{date_range}.csv"'
+        
+        writer = csv.writer(response)
+        
+        # Write headers based on report type
+        if report_type == 'summary':
+            writer.writerow(['Metric', 'Value', 'Change'])
+            writer.writerow(['Total Credits Managed', '45,678', '+12.5%'])
+            writer.writerow(['Transaction Volume', '893', '+5.2%'])
+            writer.writerow(['Average Price', '$65', '+3.8%'])
+        elif report_type == 'transactions':
+            writer.writerow(['Date', 'Transaction ID', 'Type', 'Counterparty', 'Credits', 'Price', 'Total Value', 'Status'])
+            writer.writerow(['2023-05-10', 'TX-1025478', 'Purchase', 'EcoTech Inc.', '500', '$62.50', '$31,250', 'Completed'])
+            writer.writerow(['2023-05-08', 'TX-1025477', 'Sale', 'GreenLife Co.', '750', '$63.25', '$47,437.50', 'Completed'])
+        # Add more report types as needed
+        
+        return response
+    
+    # For other format types, you would implement appropriate export functionality
+    # For now, just return a placeholder response
+    return HttpResponse(f"Export {report_type} as {format_type} not implemented yet") 
