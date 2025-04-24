@@ -13,6 +13,28 @@
         </p>
     </div>
 
+    <!-- Approval Status Notification Popup -->
+    <div id="approval-notification" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="absolute inset-0 bg-black opacity-50"></div>
+        <div class="bg-white p-6 rounded-lg shadow-xl z-10 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Account Pending Approval</h3>
+                <button type="button" id="close-approval-notification" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <p class="text-gray-600 mb-2">Your account is still pending approval.</p>
+            <p class="text-gray-600">Please wait for an administrator to review and approve your registration. You'll receive full access to the platform once your account is approved.</p>
+            <div class="mt-6 flex justify-end">
+                <button type="button" id="notification-ok-button" class="py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 card">
             <form class="space-y-6" method="post" action="{% url 'login' %}">
@@ -34,6 +56,30 @@
                     </div>
                 </div>
                 {% endif %}
+                
+                {% if user.is_authenticated and not user.approved %}
+                <div class="rounded-md bg-yellow-50 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">
+                                Your account is pending approval
+                            </h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <p>
+                                    Please wait for an administrator to approve your account.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <input type="hidden" name="next" value="{{ next }}" />
                 
                 <div>
                     <label for="id_username" class="block text-sm font-medium text-gray-700">
@@ -96,4 +142,34 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.querySelector('.bg-yellow-50')) {
+            // Show the approval notification popup if warning is present
+            var approvalNotification = document.getElementById('approval-notification');
+            if (approvalNotification) {
+                approvalNotification.classList.remove('hidden');
+                
+                // Close the popup when the user clicks the close button
+                var closeButton = document.getElementById('close-approval-notification');
+                if (closeButton) {
+                    closeButton.addEventListener('click', function() {
+                        approvalNotification.classList.add('hidden');
+                    });
+                }
+                
+                // Also close the popup when the OK button is clicked
+                var okButton = document.getElementById('notification-ok-button');
+                if (okButton) {
+                    okButton.addEventListener('click', function() {
+                        approvalNotification.classList.add('hidden');
+                    });
+                }
+            }
+        }
+    });
+</script>
 {% endblock %} 
