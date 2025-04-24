@@ -527,7 +527,7 @@ def create_transaction(request):
     Handle the creation of a new transaction when a user buys credits.
     """
     if request.method != 'POST':
-        return redirect('employer:employer_trading')
+        return redirect('employer:trading')
         
     employer_profile = request.user.employer_profile
     
@@ -545,12 +545,12 @@ def create_transaction(request):
         # Check if trying to buy from self
         if offer.seller == employer_profile:
             messages.error(request, "You cannot buy your own credits")
-            return redirect('employer:employer_trading')
+            return redirect('employer:trading')
             
         # Check if enough credits available
         if credit_amount > offer.credit_amount:
             messages.error(request, "Not enough credits available in this offer")
-            return redirect('employer:employer_trading')
+            return redirect('employer:trading')
         
         # Convert to Decimal for database operations
         credit_amount_decimal = Decimal(str(credit_amount))
@@ -592,7 +592,7 @@ def create_transaction(request):
     except Exception as e:
         messages.error(request, f"Error processing transaction: {str(e)}")
     
-    return redirect('employer:employer_trading')
+    return redirect('employer:trading')
 
 @login_required
 @user_passes_test(lambda u: u.is_employer)
@@ -601,7 +601,7 @@ def create_offer(request):
     Handle the creation of a new market offer to sell credits.
     """
     if request.method != 'POST':
-        return redirect('employer:employer_trading')
+        return redirect('employer:trading')
         
     employer_profile = request.user.employer_profile
     
@@ -617,11 +617,11 @@ def create_offer(request):
         # Validate inputs
         if credit_amount <= 0:
             messages.error(request, "Credit amount must be positive")
-            return redirect('employer:employer_trading')
+            return redirect('employer:trading')
             
         if price_per_credit <= 0:
             messages.error(request, "Price per credit must be positive")
-            return redirect('employer:employer_trading')
+            return redirect('employer:trading')
         
         # Check if employer has enough credits
         available_credits = CarbonCredit.objects.filter(
@@ -632,7 +632,7 @@ def create_offer(request):
         
         if credit_amount > available_credits:
             messages.error(request, f"You don't have enough credits. Available: {available_credits}")
-            return redirect('employer:employer_trading')
+            return redirect('employer:trading')
         
         # Calculate total price
         total_price = credit_amount * price_per_credit
@@ -697,11 +697,11 @@ def create_offer(request):
                 remaining_to_deduct = Decimal('0')
                 
         messages.success(request, f"Successfully listed {credit_amount} credits for sale at ${price_per_credit} each.")
-        return redirect('employer:employer_trading')
+        return redirect('employer:trading')
         
     except Exception as e:
         messages.error(request, f"An error occurred: {str(e)}")
-        return redirect('employer:employer_trading')
+        return redirect('employer:trading')
 
 @login_required
 @user_passes_test(lambda u: u.is_employer)
@@ -710,7 +710,7 @@ def mark_notification_read(request, notification_id):
     Mark a notification as read or unread.
     """
     if request.method != 'POST':
-        return redirect('employer:employer_trading')
+        return redirect('employer:trading')
     
     try:
         notification = TransactionNotification.objects.get(id=notification_id, user=request.user)
@@ -727,7 +727,7 @@ def mark_notification_read(request, notification_id):
     except TransactionNotification.DoesNotExist:
         messages.error(request, "Notification not found.")
     
-    return redirect('employer:employer_trading')
+    return redirect('employer:trading')
 
 @login_required
 @user_passes_test(lambda u: u.is_employer)
