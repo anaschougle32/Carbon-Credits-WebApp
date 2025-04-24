@@ -23,6 +23,7 @@ from django.contrib.auth import logout
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.views.generic import TemplateView
 from django.shortcuts import redirect, HttpResponseRedirect
+from users.models import EmployerProfile
 
 # API URLs
 api_urlpatterns = [
@@ -41,6 +42,16 @@ class LandingPageView(TemplateView):
         if request.user.is_authenticated:
             return redirect('dashboard')
         return super().get(request, *args, **kwargs)
+
+# Registration view with employers list
+class RegisterView(TemplateView):
+    template_name = 'auth/register.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Get all approved employers
+        context['employers'] = EmployerProfile.objects.filter(approved=True)
+        return context
 
 # Dashboard redirect function
 def dashboard_redirect(request):
@@ -92,7 +103,7 @@ urlpatterns = [
     # Auth routes
     path('login/', auth_views.LoginView.as_view(template_name='auth/login.html'), name='login'),
     path('logout/', logout_view, name='logout'),
-    path('register/', TemplateView.as_view(template_name='auth/register.html'), name='register'),
+    path('register/', RegisterView.as_view(), name='register'),
     path('profile/', profile_redirect, name='profile'),
     path('password_reset/', auth_views.PasswordResetView.as_view(template_name='auth/password_reset.html'), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='auth/password_reset_done.html'), name='password_reset_done'),

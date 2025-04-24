@@ -20,62 +20,43 @@
                 <form action="/api/users/employers/register/" method="post" class="space-y-6">
                     {% csrf_token %}
                     
-                    {% if messages %}
-                    <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <ul>
-                                    {% for message in messages %}
-                                    <li class="text-sm text-red-700">{{ message }}</li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
                     <div class="space-y-4">
                         <h3 class="text-lg font-medium text-gray-900">Admin Information</h3>
                         
                         <div>
-                            <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                            <label for="employer_email" class="block text-sm font-medium text-gray-700">Email Address</label>
                             <div class="mt-1">
-                                <input id="email" name="email" type="email" autocomplete="email" required class="input appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                            <div class="mt-1">
-                                <input id="username" name="username" type="text" required class="input appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                            <div class="mt-1">
-                                <input id="password" name="password" type="password" required class="input appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                <input id="employer_email" name="email" type="email" autocomplete="email" required class="input appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
                             </div>
                         </div>
                         
                         <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
                             <div>
-                                <label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
+                                <label for="employer_first_name" class="block text-sm font-medium text-gray-700">First Name</label>
                                 <div class="mt-1">
-                                    <input id="first_name" name="first_name" type="text" required class="input appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                    <input id="employer_first_name" name="first_name" type="text" required class="input appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
                                 </div>
                             </div>
                             
                             <div>
-                                <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
+                                <label for="employer_last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
                                 <div class="mt-1">
-                                    <input id="last_name" name="last_name" type="text" required class="input appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                    <input id="employer_last_name" name="last_name" type="text" required class="input appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="employer_username" class="block text-sm font-medium text-gray-700">Username</label>
+                            <div class="mt-1">
+                                <input id="employer_username" name="username" type="text" required class="input appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="employer_password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <div class="mt-1">
+                                <input id="employer_password" name="password" type="password" required class="input appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
                             </div>
                         </div>
                     </div>
@@ -114,13 +95,6 @@
                                 </select>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="flex items-center mt-4">
-                        <input id="terms_agreement" name="terms_agreement" type="checkbox" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" required>
-                        <label for="terms_agreement" class="ml-2 block text-sm text-gray-900">
-                            I agree to the <a href="#" class="text-green-600 hover:text-green-700">Terms and Conditions</a>
-                        </label>
                     </div>
                     
                     <div>

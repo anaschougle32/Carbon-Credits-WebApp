@@ -71,11 +71,25 @@ class EmployerRegistrationSerializer(serializers.Serializer):
     company_name = serializers.CharField(max_length=100)
     registration_number = serializers.CharField(max_length=50)
     industry = serializers.CharField(max_length=100)
+
+    def validate_username(self, value):
+        """Validate that the username is not already taken."""
+        # Check if user exists with this username
+        existing_user = CustomUser.objects.filter(username=value).first()
+        if existing_user:
+            # Allow updating own username (for existing users)
+            email = self.initial_data.get('email')
+            if email and existing_user.email == email:
+                return value
+            raise serializers.ValidationError("This username is already taken.")
+        return value
     
-    # Office location fields
-    office_latitude = serializers.DecimalField(max_digits=10, decimal_places=7)
-    office_longitude = serializers.DecimalField(max_digits=10, decimal_places=7)
-    office_address = serializers.CharField(max_length=255)
+    def validate_registration_number(self, value):
+        """Validate that the registration number is not already taken."""
+        existing_employer = EmployerProfile.objects.filter(registration_number=value).first()
+        if existing_employer:
+            raise serializers.ValidationError("This registration number is already registered.")
+        return value
 
 
 class EmployeeRegistrationSerializer(serializers.Serializer):
@@ -91,11 +105,6 @@ class EmployeeRegistrationSerializer(serializers.Serializer):
     # Employee profile fields
     employer_id = serializers.IntegerField()
     employee_id = serializers.CharField(max_length=50, required=False, allow_blank=True)
-    
-    # Home location fields
-    home_latitude = serializers.DecimalField(max_digits=10, decimal_places=7, required=False)
-    home_longitude = serializers.DecimalField(max_digits=10, decimal_places=7, required=False)
-    home_address = serializers.CharField(max_length=255, required=False)
     
     def validate_username(self, value):
         """Validate that the username is not already taken."""

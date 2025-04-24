@@ -1,121 +1,87 @@
-// Initialize Google Maps
-let map;
-let marker;
-let geocoder;
+/**
+ * Employee Registration Form JavaScript
+ * Handles form validation for the employee registration process
+ */
 
-function initMap() {
-    // Default center (San Francisco)
-    const defaultLocation = { lat: 37.7749, lng: -122.4194 };
-    
-    // Create map
-    map = new google.maps.Map(document.getElementById('home-map'), {
-        zoom: 13,
-        center: defaultLocation,
-        mapTypeControl: true,
-        streetViewControl: false,
-        fullscreenControl: true
-    });
-    
-    // Create marker for home location
-    marker = new google.maps.Marker({
-        position: defaultLocation,
-        map: map,
-        draggable: true,
-        animation: google.maps.Animation.DROP,
-        title: 'Your Home Location'
-    });
-    
-    // Update latitude and longitude fields when marker is moved
-    google.maps.event.addListener(marker, 'dragend', function() {
-        reverseGeocode(marker.getPosition());
-    });
-    
-    // Set up the search box
-    const searchInput = document.getElementById('map-search-input');
-    const searchBox = new google.maps.places.SearchBox(searchInput);
-    
-    // Bias search results to current map view
-    map.addListener('bounds_changed', () => {
-        searchBox.setBounds(map.getBounds());
-    });
-    
-    // Listen for search box selections
-    searchBox.addListener('places_changed', () => {
-        const places = searchBox.getPlaces();
-        if (places.length === 0) return;
-        
-        const place = places[0];
-        if (!place.geometry || !place.geometry.location) return;
-        
-        // Set marker position to selected place
-        marker.setPosition(place.geometry.location);
-        map.setCenter(place.geometry.location);
-        map.setZoom(15);
-        
-        // Update address field
-        document.getElementById('id_home_address').value = place.formatted_address;
-    });
-    
-    // Listen for click on map
-    map.addListener('click', (event) => {
-        marker.setPosition(event.latLng);
-        reverseGeocode(event.latLng);
-    });
-}
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up form validation
+    setupFormValidation();
+});
 
-function reverseGeocode(position) {
-    if (!geocoder) {
-        geocoder = new google.maps.Geocoder();
-    }
-    
-    geocoder.geocode({'location': position}, function(results, status) {
-        if (status === 'OK' && results[0]) {
-            document.getElementById('id_home_address').value = results[0].formatted_address;
-        }
-    });
-}
-
+/**
+ * Sets up form validation on submission
+ */
 function setupFormValidation() {
-    const form = document.getElementById('employeeRegistrationForm');
-    
-    form.addEventListener('submit', function(e) {
+    const form = document.querySelector('form');
+    if (!form) return;
+
+    form.addEventListener('submit', function(event) {
         if (!validateForm()) {
-            e.preventDefault();
+            event.preventDefault();
         }
     });
 }
 
+/**
+ * Validates the form before submission
+ * @returns {boolean} - Whether the form is valid
+ */
 function validateForm() {
     let isValid = true;
-    const requiredFields = [
-        'id_email',
-        'id_username',
-        'id_password',
-        'id_first_name',
-        'id_last_name',
-        'id_employer',
-        'id_home_address',
-        'id_terms'
-    ];
+    const requiredFields = document.querySelectorAll('input[required]');
     
-    requiredFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (!field || !field.value.trim()) {
-            if (field) field.classList.add('is-invalid');
+    // Check all required fields
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
             isValid = false;
+            field.classList.add('border-red-500');
+            
+            // Add error message if it doesn't exist
+            let errorElement = field.parentNode.querySelector('.error-message');
+            if (!errorElement) {
+                errorElement = document.createElement('p');
+                errorElement.className = 'mt-1 text-sm text-red-600 error-message';
+                errorElement.textContent = 'This field is required';
+                field.parentNode.appendChild(errorElement);
+            }
         } else {
-            field.classList.remove('is-invalid');
+            field.classList.remove('border-red-500');
+            
+            // Remove error message if it exists
+            const errorElement = field.parentNode.querySelector('.error-message');
+            if (errorElement) {
+                errorElement.remove();
+            }
         }
     });
+    
+    // Validate email format if provided
+    const emailField = document.querySelector('input[type="email"]');
+    if (emailField && emailField.value.trim() && !isValidEmail(emailField.value.trim())) {
+        isValid = false;
+        emailField.classList.add('border-red-500');
+        
+        // Add error message if it doesn't exist
+        let errorElement = emailField.parentNode.querySelector('.error-message');
+        if (!errorElement) {
+            errorElement = document.createElement('p');
+            errorElement.className = 'mt-1 text-sm text-red-600 error-message';
+            errorElement.textContent = 'Please enter a valid email address';
+            emailField.parentNode.appendChild(errorElement);
+        } else {
+            errorElement.textContent = 'Please enter a valid email address';
+        }
+    }
     
     return isValid;
 }
 
-// Initialize map when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize the map
-    initMap();
-    
-    // Set up form validation
-    setupFormValidation();
-}); 
+/**
+ * Validates an email address format
+ * @param {string} email - The email to validate
+ * @returns {boolean} - Whether the email is valid
+ */
+function isValidEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+} 

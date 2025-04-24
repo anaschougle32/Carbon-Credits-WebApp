@@ -50,9 +50,6 @@ class EmployerRegistrationView(APIView):
                 company_name = serializer.validated_data.get('company_name')
                 registration_number = serializer.validated_data.get('registration_number')
                 industry = serializer.validated_data.get('industry')
-                office_latitude = serializer.validated_data.get('office_latitude')
-                office_longitude = serializer.validated_data.get('office_longitude')
-                office_address = serializer.validated_data.get('office_address')
                 
                 # Check if user already exists
                 if CustomUser.objects.filter(email=email).exists():
@@ -80,18 +77,6 @@ class EmployerRegistrationView(APIView):
                     registration_number=registration_number,
                     industry=industry,
                     approved=False  # Needs admin approval
-                )
-                
-                # Create office location
-                Location.objects.create(
-                    created_by=user,
-                    employer=employer_profile,
-                    name=f"{company_name} Office",
-                    address=office_address,
-                    latitude=office_latitude,
-                    longitude=office_longitude,
-                    location_type='office',
-                    is_primary=True
                 )
                 
                 # Return success response with redirect
@@ -124,9 +109,6 @@ class EmployeeRegistrationView(APIView):
                 last_name = serializer.validated_data.get('last_name')
                 employer_id = serializer.validated_data.get('employer_id')
                 employee_id = serializer.validated_data.get('employee_id', '')
-                home_address = serializer.validated_data.get('home_address', '')
-                home_latitude = serializer.validated_data.get('home_latitude', None)
-                home_longitude = serializer.validated_data.get('home_longitude', None)
                 
                 # Check if user already exists
                 existing_user = CustomUser.objects.filter(email=email).first()
@@ -196,27 +178,6 @@ class EmployeeRegistrationView(APIView):
                     employee_profile.employee_id = employee_id
                     employee_profile.approved = False
                     employee_profile.save()
-                
-                # Create home location if address is provided
-                if home_address:
-                    # Check if home location already exists
-                    home_location = Location.objects.filter(created_by=user, location_type='home').first()
-                    if home_location:
-                        # Update existing home location
-                        home_location.address = home_address
-                        home_location.latitude = home_latitude
-                        home_location.longitude = home_longitude
-                        home_location.save()
-                    else:
-                        # Create new home location
-                        Location.objects.create(
-                            created_by=user,
-                            name="Home",
-                            address=home_address,
-                            latitude=home_latitude,
-                            longitude=home_longitude,
-                            location_type='home'
-                        )
                 
                 # Return success response with redirect
                 return Response(

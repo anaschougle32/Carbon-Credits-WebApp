@@ -56,6 +56,19 @@
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
+        
+        {% if messages %}
+        <tr>
+          <td colspan="5" class="px-6 py-4">
+            {% for message in messages %}
+            <div class="p-4 mb-4 rounded-md {% if message.tags == 'success' %}bg-green-100 text-green-700{% elif message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+              {{ message }}
+            </div>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endif %}
+        
         <tbody id="users-table-body" class="bg-white divide-y divide-gray-200">
           {% for user in users %}
           <tr id="user-{{ user.id }}">
@@ -99,26 +112,16 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
               <div class="flex space-x-2">
-                <a href="#" class="text-indigo-600 hover:text-indigo-900">View</a>
+                <a href="{% url 'admin_user_detail' user.id %}" class="text-indigo-600 hover:text-indigo-900">View</a>
                 {% if not user.approved %}
-                <button 
-                  class="text-green-600 hover:text-green-900"
-                  hx-post="/admin/users/approve/"
-                  hx-vals='{"user_id": "{{ user.id }}"}'
-                  hx-target="#user-{{ user.id }}"
-                  hx-swap="outerHTML"
-                >
-                  Approve
-                </button>
-                <button 
-                  class="text-red-600 hover:text-red-900"
-                  hx-post="/admin/users/reject/"
-                  hx-vals='{"user_id": "{{ user.id }}"}'
-                  hx-target="#user-{{ user.id }}"
-                  hx-swap="outerHTML"
-                >
-                  Reject
-                </button>
+                <form method="post" action="{% url 'admin_approve_user' user.id %}" class="inline">
+                  {% csrf_token %}
+                  <button type="submit" class="text-green-600 hover:text-green-900 mr-3">Approve</button>
+                </form>
+                <form method="post" action="{% url 'admin_reject_user' user.id %}" class="inline">
+                  {% csrf_token %}
+                  <button type="submit" class="text-red-600 hover:text-red-900 mr-3">Reject</button>
+                </form>
                 {% endif %}
               </div>
             </td>
