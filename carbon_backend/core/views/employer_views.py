@@ -767,7 +767,7 @@ def employee_approval(request, employee_id):
     except EmployeeProfile.DoesNotExist:
         messages.error(request, "Employee not found")
     
-    return redirect('employer:employer_employee_list')
+    return redirect('employer:employees')
 
 @login_required
 @user_passes_test(lambda u: u.is_employer)
@@ -776,7 +776,7 @@ def invite_employee(request):
     View for inviting a new employee by email.
     """
     if request.method != 'POST':
-        return redirect('employer:employer_employee_list')
+        return redirect('employer:employees')
     
     email = request.POST.get('email')
     department = request.POST.get('department', '')
@@ -784,12 +784,12 @@ def invite_employee(request):
     
     if not email:
         messages.error(request, "Email address is required")
-        return redirect('employer:employer_employee_list')
+        return redirect('employer:employees')
         
     # Check if user with this email already exists
     if CustomUser.objects.filter(email=email).exists():
         messages.error(request, f"User with email {email} already exists")
-        return redirect('employer:employer_employee_list')
+        return redirect('employer:employees')
     
     try:
         # Generate a unique invitation token
@@ -811,7 +811,7 @@ def invite_employee(request):
         
         # Send invitation email (would need email configuration)
         invitation_url = request.build_absolute_uri(
-            reverse('employee_register') + f'?token={token}'
+            reverse('users:employee_register') + f'?token={token}'
         )
         
         # Here you would normally send an email with the invitation_url
@@ -824,7 +824,7 @@ def invite_employee(request):
     except Exception as e:
         messages.error(request, f"Error sending invitation: {str(e)}")
     
-    return redirect('employer:employer_employee_list')
+    return redirect('employer:employees')
 
 # Profile views
 @login_required

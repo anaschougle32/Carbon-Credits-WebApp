@@ -234,19 +234,15 @@
                                 {% if not employee.approved %}
                                 <form method="post" action="{% url 'employer:employee_approval' employee.id %}?action=approve" class="inline">
                                     {% csrf_token %}
-                                    <button type="submit" class="text-green-600 hover:text-green-900 action-btn">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                        </svg>
+                                    <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-xs font-medium">
+                                        Approve
                                     </button>
                                 </form>
                                 
-                                <form method="post" action="{% url 'employer:employee_approval' employee.id %}?action=reject" class="inline">
+                                <form method="post" action="{% url 'employer:employee_approval' employee.id %}?action=reject" class="inline ml-2">
                                     {% csrf_token %}
-                                    <button type="submit" class="text-red-600 hover:text-red-900 action-btn">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
+                                    <button type="submit" class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-xs font-medium">
+                                        Reject
                                     </button>
                                 </form>
                                 {% endif %}

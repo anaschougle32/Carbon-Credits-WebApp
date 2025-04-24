@@ -41,21 +41,65 @@ class EmployerRegistrationView(APIView):
         serializer = EmployerRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
-                # Create user
-                user_data = serializer.validated_data.pop('user')
-                password = user_data.pop('password')
-                user = CustomUser.objects.create(**user_data, is_employer=True)
-                user.set_password(password)
-                user.save()
+                # Get validated data
+                email = serializer.validated_data.get('email')
+                username = serializer.validated_data.get('username')
+                password = serializer.validated_data.get('password')
+                first_name = serializer.validated_data.get('first_name')
+                last_name = serializer.validated_data.get('last_name')
+                company_name = serializer.validated_data.get('company_name')
+                registration_number = serializer.validated_data.get('registration_number')
+                industry = serializer.validated_data.get('industry')
+                office_latitude = serializer.validated_data.get('office_latitude')
+                office_longitude = serializer.validated_data.get('office_longitude')
+                office_address = serializer.validated_data.get('office_address')
                 
-                # Create employer profile
-                EmployerProfile.objects.create(user=user, **serializer.validated_data)
+                # Check if user already exists
+                if CustomUser.objects.filter(email=email).exists():
+                    return Response(
+                        {"email": ["A user with this email already exists."]},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
                 
-                # Return user data
+                # Create user (inactive until approved)
+                user = CustomUser.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password,
+                    first_name=first_name,
+                    last_name=last_name,
+                    is_employer=True,
+                    is_active=True,  # User can login but cannot access restricted areas
+                    approved=False  # User is not fully approved
+                )
+                
+                # Create employer profile (pending approval)
+                employer_profile = EmployerProfile.objects.create(
+                    user=user,
+                    company_name=company_name,
+                    registration_number=registration_number,
+                    industry=industry,
+                    approved=False  # Needs admin approval
+                )
+                
+                # Create office location
+                Location.objects.create(
+                    created_by=user,
+                    employer=employer_profile,
+                    name=f"{company_name} Office",
+                    address=office_address,
+                    latitude=office_latitude,
+                    longitude=office_longitude,
+                    location_type='office',
+                    is_primary=True
+                )
+                
+                # Return success response with redirect
                 return Response(
                     {
-                        "detail": "Employer registration successful. Awaiting approval.",
-                        "redirect_url": "/registration/pending-approval/"
+                        "detail": "Employer registration successful. Awaiting approval from the administrator.",
+                        "redirect_url": "/registration/pending-approval/",
+                        "user_id": user.id
                     },
                     status=status.HTTP_201_CREATED
                 )
@@ -72,21 +116,114 @@ class EmployeeRegistrationView(APIView):
         serializer = EmployeeRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
-                # Create user
-                user_data = serializer.validated_data.pop('user')
-                password = user_data.pop('password')
-                user = CustomUser.objects.create(**user_data, is_employee=True)
-                user.set_password(password)
-                user.save()
+                # Get validated data
+                email = serializer.validated_data.get('email')
+                username = serializer.validated_data.get('username')
+                password = serializer.validated_data.get('password')
+                first_name = serializer.validated_data.get('first_name')
+                last_name = serializer.validated_data.get('last_name')
+                employer_id = serializer.validated_data.get('employer_id')
+                employee_id = serializer.validated_data.get('employee_id', '')
+                home_address = serializer.validated_data.get('home_address', '')
+                home_latitude = serializer.validated_data.get('home_latitude', None)
+                home_longitude = serializer.validated_data.get('home_longitude', None)
                 
-                # Create employee profile
-                EmployeeProfile.objects.create(user=user, **serializer.validated_data)
+                # Check if user already exists
+                existing_user = CustomUser.objects.filter(email=email).first()
+                if existing_user:
+                    # If the user exists but has no employee profile, they might be registering as an employee
+                    if hasattr(existing_user, 'employee_profile'):
+                        # User is already registered as an employee
+                        return Response(
+                            {"email": ["A user with this email is already registered as an employee."]},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    
+                    # If user is an employer or admin, they can't register as an employee
+                    if existing_user.is_employer or existing_user.is_bank_admin or existing_user.is_super_admin:
+                        return Response(
+                            {"email": ["This email is already registered as an employer or administrator."]},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    
+                    # For other cases (e.g., user exists but no role), we update the user instead of creating a new one
+                    user = existing_user
+                    user.first_name = first_name
+                    user.last_name = last_name
+                    user.is_employee = True
+                    user.approved = False
+                    user.save()
+                    
+                    # If they provided a new password, update it
+                    if password:
+                        user.set_password(password)
+                        user.save()
+                else:
+                    # Create new user (inactive until approved)
+                    user = CustomUser.objects.create_user(
+                        username=username,
+                        email=email,
+                        password=password,
+                        first_name=first_name,
+                        last_name=last_name,
+                        is_employee=True,
+                        is_active=True,  # User can login but cannot access restricted areas
+                        approved=False  # User is not fully approved
+                    )
                 
-                # Return user data
+                # Get employer
+                try:
+                    employer = EmployerProfile.objects.get(id=employer_id)
+                except EmployerProfile.DoesNotExist:
+                    return Response(
+                        {"employer_id": ["Employer does not exist"]},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Check if employee profile already exists
+                employee_profile = EmployeeProfile.objects.filter(user=user).first()
+                if not employee_profile:
+                    # Create employee profile (pending approval)
+                    employee_profile = EmployeeProfile.objects.create(
+                        user=user,
+                        employer=employer,
+                        employee_id=employee_id,
+                        approved=False  # Needs employer approval
+                    )
+                else:
+                    # Update existing employee profile
+                    employee_profile.employer = employer
+                    employee_profile.employee_id = employee_id
+                    employee_profile.approved = False
+                    employee_profile.save()
+                
+                # Create home location if address is provided
+                if home_address:
+                    # Check if home location already exists
+                    home_location = Location.objects.filter(created_by=user, location_type='home').first()
+                    if home_location:
+                        # Update existing home location
+                        home_location.address = home_address
+                        home_location.latitude = home_latitude
+                        home_location.longitude = home_longitude
+                        home_location.save()
+                    else:
+                        # Create new home location
+                        Location.objects.create(
+                            created_by=user,
+                            name="Home",
+                            address=home_address,
+                            latitude=home_latitude,
+                            longitude=home_longitude,
+                            location_type='home'
+                        )
+                
+                # Return success response with redirect
                 return Response(
                     {
-                        "detail": "Employee registration successful. Awaiting approval.",
-                        "redirect_url": "/registration/pending-approval/"
+                        "detail": "Employee registration successful. Awaiting approval from your employer.",
+                        "redirect_url": "/registration/pending-approval/",
+                        "user_id": user.id
                     },
                     status=status.HTTP_201_CREATED
                 )

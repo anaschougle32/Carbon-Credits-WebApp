@@ -153,17 +153,13 @@
                     <div class="flex justify-between">
                         <span class="text-gray-600">Status:</span>
                         <span class="font-medium">
-                            {% if employee_profile.verification_status == 'approved' %}
+                            {% if employee_profile.approved %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 Approved
                             </span>
-                            {% elif employee_profile.verification_status == 'pending' %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                Pending
-                            </span>
                             {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                Rejected
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                Pending Approval
                             </span>
                             {% endif %}
                         </span>

@@ -101,6 +101,7 @@ class EmployeeProfile(models.Model):
         on_delete=models.CASCADE, 
         related_name='employees'
     )
+    employee_id = models.CharField(max_length=50, blank=True, null=True)
     approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
     wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)

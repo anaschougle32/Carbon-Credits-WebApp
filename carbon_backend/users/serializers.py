@@ -53,7 +53,7 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = EmployeeProfile
-        fields = ['id', 'user', 'employer', 'approved', 'created_at']
+        fields = ['id', 'user', 'employer', 'employee_id', 'approved', 'created_at', 'wallet_balance', 'department']
         read_only_fields = ['id', 'user', 'approved', 'created_at']
 
 
@@ -82,10 +82,39 @@ class EmployeeRegistrationSerializer(serializers.Serializer):
     """Serializer for employee registration."""
     
     # User fields
-    user = UserSerializer()
+    email = serializers.EmailField()
+    username = serializers.CharField(max_length=150)
+    password = serializers.CharField(min_length=8, write_only=True)
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    
+    # Employee profile fields
     employer_id = serializers.IntegerField()
+    employee_id = serializers.CharField(max_length=50, required=False, allow_blank=True)
     
     # Home location fields
     home_latitude = serializers.DecimalField(max_digits=10, decimal_places=7, required=False)
     home_longitude = serializers.DecimalField(max_digits=10, decimal_places=7, required=False)
-    home_address = serializers.CharField(max_length=255, required=False) 
+    home_address = serializers.CharField(max_length=255, required=False)
+    
+    def validate_username(self, value):
+        """Validate that the username is not already taken."""
+        # Check if user exists with this username
+        existing_user = CustomUser.objects.filter(username=value).first()
+        if existing_user:
+            # Allow updating own username (for existing users)
+            email = self.initial_data.get('email')
+            if email and existing_user.email == email:
+                return value
+            raise serializers.ValidationError("This username is already taken.")
+        return value
+    
+    def validate_employer_id(self, value):
+        """Validate that the employer exists and is approved."""
+        try:
+            employer = EmployerProfile.objects.get(id=value)
+            if not employer.approved:
+                raise serializers.ValidationError("Selected employer is not approved yet.")
+            return value
+        except EmployerProfile.DoesNotExist:
+            raise serializers.ValidationError("Selected employer does not exist.") 

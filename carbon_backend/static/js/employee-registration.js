@@ -27,7 +27,6 @@ function initMap() {
     
     // Update latitude and longitude fields when marker is moved
     google.maps.event.addListener(marker, 'dragend', function() {
-        updateCoordinates(marker.getPosition());
         reverseGeocode(marker.getPosition());
     });
     
@@ -53,22 +52,15 @@ function initMap() {
         map.setCenter(place.geometry.location);
         map.setZoom(15);
         
-        // Update coordinates and address fields
-        updateCoordinates(place.geometry.location);
+        // Update address field
         document.getElementById('id_home_address').value = place.formatted_address;
     });
     
     // Listen for click on map
     map.addListener('click', (event) => {
         marker.setPosition(event.latLng);
-        updateCoordinates(event.latLng);
         reverseGeocode(event.latLng);
     });
-}
-
-function updateCoordinates(position) {
-    document.getElementById('id_home_latitude').value = position.lat().toFixed(7);
-    document.getElementById('id_home_longitude').value = position.lng().toFixed(7);
 }
 
 function reverseGeocode(position) {
@@ -108,8 +100,8 @@ function validateForm() {
     
     requiredFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
-        if (!field.value.trim()) {
-            field.classList.add('is-invalid');
+        if (!field || !field.value.trim()) {
+            if (field) field.classList.add('is-invalid');
             isValid = false;
         } else {
             field.classList.remove('is-invalid');
