@@ -393,23 +393,43 @@
             <!-- Trip Proof Section -->
             <div class="mb-8 {% if not has_home_location %}hidden{% endif %}">
                 <h2 class="text-xl font-semibold mb-4">Trip Proof</h2>
-                <p class="text-sm text-gray-600 mb-4">Upload an image of your ticket, receipt, or any proof of your commute (optional).</p>
+                <p class="text-sm text-gray-600 mb-4">Upload an image of your ticket, receipt, or any proof of your commute.</p>
                 
-                <button class="file-upload-trigger w-full px-4 py-3 border border-gray-300 rounded-lg text-left hover:bg-gray-50 transition-colors flex justify-between items-center">
-                    <div class="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                        <span class="text-gray-700">Upload trip proof</span>
+                <div class="flex space-x-4 mb-4">
+                    <!-- Advanced upload button -->
+                    <button type="button" class="file-upload-trigger flex-1 px-4 py-3 border border-gray-300 rounded-lg text-left hover:bg-gray-50 transition-colors flex justify-between items-center">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <span class="text-gray-700">Advanced Upload</span>
+                        </div>
+                        <span class="text-sm text-gray-500">With Preview</span>
+                    </button>
+                    
+                    <!-- Quick upload option -->
+                    <div class="flex-1 relative">
+                        <input type="file" id="direct-file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept="image/*,application/pdf">
+                        <div class="w-full h-full px-4 py-3 border border-gray-300 rounded-lg text-left hover:bg-gray-50 transition-colors flex justify-between items-center">
+                            <div class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" />
+                                </svg>
+                                <span class="text-gray-700">Quick Upload</span>
+                            </div>
+                            <span class="text-sm text-gray-500">Choose File</span>
+                        </div>
                     </div>
-                    <span class="text-sm text-gray-500">JPG, PNG, GIF, PDF, SVG</span>
-                </button>
-                
-                <input type="hidden" id="proof-upload" name="proof_image">
-                
-                <div id="file-preview-list" class="mt-4 space-y-2">
-                    <!-- Uploaded files will be shown here -->
                 </div>
+                
+                <div class="text-xs text-gray-500 mb-4">Accepted file types: JPG, PNG, PDF (Max 10MB)</div>
+                
+                <!-- Hidden inputs for file handling -->
+                <input type="hidden" id="proof-upload" name="proof_image" value="">
+                <input type="hidden" id="proof-file-path" name="proof_file_path" value="">
+                
+                <!-- Preview list -->
+                <div id="file-preview-list" class="bg-gray-50 p-3 rounded-lg border border-gray-200 mt-4 hidden"></div>
             </div>
             
             <!-- Trip Preview Section -->

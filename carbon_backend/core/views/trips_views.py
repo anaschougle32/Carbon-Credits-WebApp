@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from django.db import transaction
 from decimal import Decimal
 import uuid
+import os
 
 from users.models import CustomUser, EmployeeProfile, Location
 from trips.models import Trip, CarbonCredit
@@ -245,6 +246,7 @@ def create_trip(request):
         # Handle trip proof
         proof_image = request.FILES.get('proof_image')
         proof_data = request.POST.get('proof_image')
+        proof_file_path = request.POST.get('proof_file_path')
         
         if proof_image:
             # Handle traditional file upload
@@ -263,13 +265,19 @@ def create_trip(request):
             format, imgstr = proof_data.split(';base64,')
             ext = format.split('/')[-1]
             
-            # Generate a unique filename
-            filename = f"{uuid.uuid4()}.{ext}"
+            # Use the provided path or generate a unique filename
+            if proof_file_path:
+                filename = os.path.basename(proof_file_path)
+            else:
+                filename = f"{uuid.uuid4()}.{ext}"
             
             # Convert base64 to file and save
             data = ContentFile(base64.b64decode(imgstr), name=filename)
             trip.proof_image = data
             trip.verification_status = 'pending'
+            
+            # Log the file path for debugging
+            print(f"Saved proof image to: {trip.proof_image.path}")
         else:
             # All trips require employer approval
             trip.verification_status = 'pending'

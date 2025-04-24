@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'django_htmx',
     'whitenoise',
+    'storages',
     
     # Project apps
     'users',
@@ -211,7 +212,10 @@ GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyA-test-key-for-dev
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STORAGES = {
-    # ...
+    # Storage configuration
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },

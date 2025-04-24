@@ -16,6 +16,7 @@ django-extensions==4.1
 django-htmx==1.23.0
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
+django-storages
 frozenlist==1.5.0
 googlemaps==4.10.0
 gotrue==2.11.4
