@@ -1051,4 +1051,123 @@ def export_report(request):
     
     # For other format types, you would implement appropriate export functionality
     # For now, just return a placeholder response
-    return HttpResponse(f"Export {report_type} as {format_type} not implemented yet") 
+    return HttpResponse(f"Export {report_type} as {format_type} not implemented yet")
+
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def approvals(request):
+    """
+    View for transaction approvals management.
+    Shows pending transactions that need to be approved or rejected.
+    """
+    # Get pending transactions that need approval
+    pending_transactions = MarketplaceTransaction.objects.filter(
+        status='pending'
+    ).order_by('-created_at')
+    
+    # Get transactions that were recently approved or rejected (last 7 days)
+    seven_days_ago = timezone.now() - timedelta(days=7)
+    recent_transactions = MarketplaceTransaction.objects.filter(
+        status__in=['completed', 'rejected'],
+        completed_at__gte=seven_days_ago
+    ).order_by('-completed_at')
+    
+    # Get counts for statistics
+    pending_count = pending_transactions.count()
+    
+    # Get approved/rejected counts for today
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    approved_count = MarketplaceTransaction.objects.filter(
+        status='completed', 
+        completed_at__gte=today_start
+    ).count()
+    
+    rejected_count = MarketplaceTransaction.objects.filter(
+        status='rejected', 
+        completed_at__gte=today_start
+    ).count()
+    
+    # Calculate total credits pending approval
+    total_credits = pending_transactions.aggregate(
+        total=Sum('credit_amount')
+    )['total'] or 0
+    
+    context = {
+        'page_title': 'Transaction Approvals',
+        'active_page': 'approvals',
+        'pending_transactions': pending_transactions,
+        'recent_transactions': recent_transactions,
+        'pending_count': pending_count,
+        'approved_count': approved_count,
+        'rejected_count': rejected_count,
+        'total_credits': total_credits
+    }
+    
+    return render(request, 'bank/approvals.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def approve_transaction(request, transaction_id):
+    """
+    View for approving a transaction.
+    """
+    transaction = get_object_or_404(MarketplaceTransaction, id=transaction_id)
+    
+    # Only allow approving pending transactions
+    if transaction.status != 'pending':
+        messages.error(request, f"Transaction #{transaction_id} cannot be approved because it is not pending.")
+        return redirect('bank:bank_approvals')
+    
+    # Update transaction status
+    transaction.status = 'completed'
+    transaction.approved_by = request.user
+    transaction.completed_at = timezone.now()
+    transaction.save()
+    
+    # Add the carbon credits to the buyer's account
+    CarbonCredit.objects.create(
+        amount=transaction.credit_amount,
+        source_trip=None,
+        owner_type='employer',
+        owner_id=transaction.buyer.id,
+        timestamp=timezone.now(),
+        status='active',
+        expiry_date=timezone.now() + timezone.timedelta(days=365)  # 1 year validity
+    )
+    
+    # Notify the user
+    messages.success(request, f"Transaction #{transaction_id} approved successfully. {transaction.credit_amount} credits transferred to {transaction.buyer.company_name}.")
+    
+    return redirect('bank:bank_approvals')
+
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def reject_transaction(request, transaction_id):
+    """
+    View for rejecting a transaction.
+    """
+    transaction = get_object_or_404(MarketplaceTransaction, id=transaction_id)
+    
+    # Only allow rejecting pending transactions
+    if transaction.status != 'pending':
+        messages.error(request, f"Transaction #{transaction_id} cannot be rejected because it is not pending.")
+        return redirect('bank:bank_approvals')
+    
+    # Update transaction status
+    transaction.status = 'rejected'
+    transaction.save()
+    
+    # Return the credits to the seller's offer
+    offer = transaction.offer
+    if offer and offer.status != 'cancelled' and offer.status != 'expired':
+        offer.credit_amount += transaction.credit_amount
+        offer.total_price = offer.credit_amount * offer.price_per_credit
+        # If the offer was completed, set it back to active
+        if offer.status == 'completed':
+            offer.status = 'active'
+        offer.save()
+    
+    # Notify the user
+    messages.success(request, f"Transaction #{transaction_id} rejected. Credits returned to the marketplace.")
+    
+    return redirect('bank:bank_approvals') 
