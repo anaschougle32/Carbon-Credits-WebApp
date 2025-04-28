@@ -171,7 +171,9 @@ function initMap() {
     
     // Create markers for start and end locations
     startMarker = new google.maps.Marker({
+        position: defaultLocation,
         map: map,
+        draggable: true,
         icon: {
             url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
             scaledSize: new google.maps.Size(40, 40)
@@ -179,9 +181,13 @@ function initMap() {
         animation: google.maps.Animation.DROP,
         title: 'Start Location'
     });
+
+    var defaultLocation = { lat: 27.6648, lng: -74.0060 };
     
     endMarker = new google.maps.Marker({
         map: map,
+        position: defaultLocation,
+        draggable: true,
         icon: {
             url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
             scaledSize: new google.maps.Size(40, 40)
