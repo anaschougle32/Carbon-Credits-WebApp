@@ -163,7 +163,7 @@ function initMap() {
     
     map = new google.maps.Map(mapElement, {
         zoom: 12,
-        center: { lat: 19.0760, lng: 72.8777 }, // Default center (Mumbai)
+        center: { lat: 27.6648, lng: -81.5158 }, // Default center (Florida)
         mapTypeControl: true,
         streetViewControl: false,
         fullscreenControl: true
