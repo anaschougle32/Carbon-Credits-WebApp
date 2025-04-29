@@ -129,13 +129,6 @@
                     <option value="pending">Pending</option>
                 </select>
             </div>
-            
-            <button id="open-invite-modal" class="btn-primary flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Invite Employee
-            </button>
         </div>
     </div>
 
@@ -259,7 +252,6 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
             <p class="text-gray-500">No employees found</p>
-            <button id="open-invite-modal-empty" class="mt-4 inline-block btn-primary">Invite Employee</button>
         </div>
         {% endif %}
     </div>
@@ -326,51 +318,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Invite Employee Modal -->
-<div id="invite-employee-modal" class="modal">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-auto">
-            <div class="flex justify-between items-center border-b px-6 py-4">
-                <h3 class="text-lg font-medium text-gray-900">Invite New Employee</h3>
-                <button id="close-invite-modal" class="text-gray-400 hover:text-gray-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <form id="invite-form" method="post" action="{% url 'employer:invite_employee' %}" class="p-6">
-                {% csrf_token %}
-                <div class="space-y-4">
-                    <div>
-                        <label for="invite-email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                        <input type="email" id="invite-email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                        <p class="text-xs text-gray-500 mt-1">The employee will receive an invitation to join your organization.</p>
-                    </div>
-                    
-                    <div>
-                        <label for="invite-department" class="block text-sm font-medium text-gray-700">Department (Optional)</label>
-                        <input type="text" id="invite-department" name="department" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                    </div>
-                    
-                    <div>
-                        <label for="invite-message" class="block text-sm font-medium text-gray-700">Personal Message (Optional)</label>
-                        <textarea id="invite-message" name="message" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"></textarea>
-                    </div>
-                </div>
-                
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button type="button" id="cancel-invite" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
-                        Send Invitation
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -471,42 +418,10 @@
             employeeDetailModal.classList.remove('modal-open');
         });
         
-        // Invite Employee Modal Functionality
-        const inviteModal = document.getElementById('invite-employee-modal');
-        const openInviteModal = document.getElementById('open-invite-modal');
-        const closeInviteModal = document.getElementById('close-invite-modal');
-        const cancelInvite = document.getElementById('cancel-invite');
-        const openInviteModalEmpty = document.getElementById('open-invite-modal-empty');
-        
-        // Open invite modal
-        if (openInviteModal) {
-            openInviteModal.addEventListener('click', () => {
-                inviteModal.classList.add('modal-open');
-            });
-        }
-        
-        if (openInviteModalEmpty) {
-            openInviteModalEmpty.addEventListener('click', () => {
-                inviteModal.classList.add('modal-open');
-            });
-        }
-        
-        // Close invite modal
-        closeInviteModal.addEventListener('click', () => {
-            inviteModal.classList.remove('modal-open');
-        });
-        
-        cancelInvite.addEventListener('click', () => {
-            inviteModal.classList.remove('modal-open');
-        });
-        
         // Close modals when clicking outside
         window.addEventListener('click', (e) => {
             if (e.target === employeeDetailModal) {
                 employeeDetailModal.classList.remove('modal-open');
-            }
-            if (e.target === inviteModal) {
-                inviteModal.classList.remove('modal-open');
             }
         });
     });
