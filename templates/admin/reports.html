@@ -1,0 +1,78 @@
+{% extends "admin/partials/admin_base.html" %}
+{% load static %}
+
+{% block page_title %}Reports{% endblock %}
+{% block page_description %}View and generate various reports{% endblock %}
+
+{% block admin_content %}
+<div class="p-4">
+    <!-- Report Generation Form -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Generate Report</h2>
+        <form method="GET" action="{% url 'admin_reports' %}" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="type" class="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+                    <select name="type" id="type" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="summary" {% if report_type == 'summary' %}selected{% endif %}>Summary Report</option>
+                        <option value="trips" {% if report_type == 'trips' %}selected{% endif %}>Trips Report</option>
+                        <option value="credits" {% if report_type == 'credits' %}selected{% endif %}>Credits Report</option>
+                        <option value="users" {% if report_type == 'users' %}selected{% endif %}>Users Report</option>
+            </select>
+                </div>
+                <div>
+                    <label for="date_range" class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+                    <select name="date_range" id="date_range" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="all" {% if date_range == 'all' %}selected{% endif %}>All Time</option>
+                        <option value="today" {% if date_range == 'today' %}selected{% endif %}>Today</option>
+                        <option value="week" {% if date_range == 'week' %}selected{% endif %}>Last 7 Days</option>
+                        <option value="month" {% if date_range == 'month' %}selected{% endif %}>Last 30 Days</option>
+                        <option value="year" {% if date_range == 'year' %}selected{% endif %}>This Year</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-between items-center pt-4">
+                <div class="space-x-2">
+                    <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" onclick="exportReport('csv')">
+                        <svg class="mr-2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Export CSV
+                    </button>
+                    <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" onclick="exportReport('pdf')">
+                        <svg class="mr-2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        Export PDF
+                    </button>
+                </div>
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Generate Report
+                </button>
+            </div>
+        </form>
+            </div>
+
+            <!-- Report Content -->
+    <div id="report-content">
+        {% if report_type == 'summary' %}
+            {% include "admin/reports/_summary_report.html" %}
+        {% elif report_type == 'trips' %}
+            {% include "admin/reports/_trips_report.html" %}
+        {% elif report_type == 'credits' %}
+            {% include "admin/reports/_credits_report.html" %}
+        {% elif report_type == 'users' %}
+            {% include "admin/reports/_users_report.html" %}
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function exportReport(format) {
+    const type = document.getElementById('type').value;
+    const dateRange = document.getElementById('date_range').value;
+    const url = `{% url 'admin_export_reports' %}?type=${type}&date_range=${dateRange}&format=${format}`;
+    window.location.href = url;
+}
+</script>
+{% endblock %} 

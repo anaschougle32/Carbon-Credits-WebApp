@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+
+{% block title %}Register as Employer - Carbon Credits{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #10b981 0%, #059669 50%, #0d9488 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .register-container::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .building-decoration {
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'/%3E%3C/svg%3E") no-repeat center center;
+        background-size: contain;
+        opacity: 0.2;
+    }
+
+    .building-decoration:nth-child(1) {
+        top: -50px;
+        right: -50px;
+        transform: rotate(30deg);
+    }
+
+    .building-decoration:nth-child(2) {
+        bottom: -50px;
+        left: -50px;
+        transform: rotate(-150deg);
+    }
+
+    .register-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 3rem;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        position: relative;
+        z-index: 10;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .register-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, #10b981, #059669, #0d9488);
+        background-size: 200% 100%;
+        animation: gradientMove 3s linear infinite;
+    }
+
+    @keyframes gradientMove {
+        0% { background-position: 100% 0%; }
+        100% { background-position: -100% 0%; }
+    }
+
+    .register-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .register-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #059669;
+        margin-bottom: 1rem;
+    }
+
+    .register-logo {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+
+    .register-logo svg {
+        width: 40px;
+        height: 40px;
+        color: white;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #4B5563;
+        font-weight: 500;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #E5E7EB;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #059669;
+        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .btn-submit {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-submit::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+        );
+        transition: 0.5s;
+    }
+
+    .btn-submit:hover::before {
+        left: 100%;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+
+    .register-footer {
+        text-align: center;
+        margin-top: 2rem;
+    }
+
+    .register-footer a {
+        color: #059669;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+
+    .register-footer a:hover {
+        color: #0d9488;
+    }
+
+    .error-message {
+        background: rgba(220, 38, 38, 0.1);
+        color: #DC2626;
+        padding: 0.75rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+    }
+
+    @media (max-width: 640px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="building-decoration"></div>
+    <div class="building-decoration"></div>
+    
+    <div class="register-card">
+        <div class="register-header">
+            <div class="register-logo">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+            </div>
+            <h1>Employer Registration</h1>
+            <p class="text-gray-600">Register your company to manage employee carbon credits</p>
+    </div>
+
+        {% if form.errors %}
+        <div class="error-message">
+            Please correct the errors below.
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'users:employer_register' %}" id="employerRegistrationForm">
+                    {% csrf_token %}
+                    
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Personal Information</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="id_first_name">First Name</label>
+                    <input type="text" name="first_name" id="id_first_name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="id_last_name">Last Name</label>
+                    <input type="text" name="last_name" id="id_last_name" class="form-control" required>
+                            </div>
+                        </div>
+                        
+            <div class="form-group">
+                <label for="id_email">Email</label>
+                <input type="email" name="email" id="id_email" class="form-control" required>
+                            </div>
+                            
+            <div class="form-group">
+                <label for="id_phone">Phone Number</label>
+                <input type="tel" name="phone" id="id_phone" class="form-control" required>
+                        </div>
+                        
+            <div class="form-group">
+                <label for="id_position">Position in Company</label>
+                <input type="text" name="position" id="id_position" class="form-control" required>
+                        </div>
+                        
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 mt-6">Account Credentials</h2>
+            <div class="form-group">
+                <label for="id_username">Username</label>
+                <input type="text" name="username" id="id_username" class="form-control" required>
+                    </div>
+                    
+            <div class="form-group">
+                <label for="id_password1">Password</label>
+                <input type="password" name="password1" id="id_password1" class="form-control" required>
+            </div>
+                        
+            <div class="form-group">
+                <label for="id_password2">Confirm Password</label>
+                <input type="password" name="password2" id="id_password2" class="form-control" required>
+                        </div>
+                        
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 mt-6">Company Information</h2>
+            <div class="form-group">
+                <label for="id_company_name">Company Name</label>
+                <input type="text" name="company_name" id="id_company_name" class="form-control" required>
+                        </div>
+                        
+            <div class="form-group">
+                <label for="id_company_address">Company Address</label>
+                <input type="text" name="company_address" id="id_company_address" class="form-control" required>
+                    </div>
+                    
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="id_city">City</label>
+                    <input type="text" name="city" id="id_city" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="id_state">State</label>
+                    <input type="text" name="state" id="id_state" class="form-control" required>
+                    </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="id_zip_code">ZIP Code</label>
+                    <input type="text" name="zip_code" id="id_zip_code" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="id_country">Country</label>
+                    <input type="text" name="country" id="id_country" class="form-control" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="id_company_website">Company Website (Optional)</label>
+                <input type="url" name="company_website" id="id_company_website" class="form-control">
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn-submit">Create Account</button>
+            </div>
+        </form>
+
+        <div class="register-footer">
+            <p>Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

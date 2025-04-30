@@ -1,0 +1,329 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Carbon Credits Platform{% endblock %}</title>
+    
+    <!-- Add Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.9" integrity="sha384-QFjmbokDn2DjBjq+fM+8LUIVrAgqcNW2s0PjwXYk+vwRH4GuYK+wT1fZbSvv2Oe4" crossorigin="anonymous"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary: #6366F1;
+            --primary-dark: #4F46E5;
+            --secondary: #10B981;
+            --neutral-dark: #1F2937;
+            --light-bg: #F3F4F6;
+            --accent: #F59E0B;
+            --secondary-accent: #3B82F6;
+            --cta-blue: #2563EB;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--light-bg);
+        }
+        
+        /* Modern UI Components */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-radius: 16px;
+            padding: 12px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: var(--neutral-dark);
+            border: 2px solid var(--primary);
+            border-radius: 16px;
+            padding: 10px 22px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .section-headline {
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stats-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .stats-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stats-card .label {
+            font-size: 0.875rem;
+            color: #4B5563;
+            margin-top: 0.25rem;
+        }
+        
+        /* Navigation */
+        .nav-link {
+            color: #4B5563;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        
+        /* Form Controls */
+        .input {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #E5E7EB;
+            border-radius: 16px;
+            padding: 12px 18px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            outline: none;
+        }
+        
+        /* Card layout */
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Loading indicator for HTMX */
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 500ms ease-in;
+        }
+        .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
+        .htmx-request.htmx-indicator {
+            opacity: 1;
+        }
+        
+        /* Background patterns */
+        .bg-pattern {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 25px 25px, var(--primary) 2%, transparent 0%),
+                radial-gradient(circle at 75px 75px, var(--secondary) 2%, transparent 0%);
+            background-size: 100px 100px;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            margin: 5% auto;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 90%;
+            max-width: 600px;
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .close {
+            color: #6B7280;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: var(--primary);
+            text-decoration: none;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="flex flex-col min-h-screen">
+    {% block show_header %}
+    {% if not user.is_authenticated %}
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <a href="{% url 'home' %}" class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <span class="ml-2 text-xl font-bold bg-gradient-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">Carbon Credits</span>
+                        </a>
+                    </div>
+                    
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="{% url 'home' %}" class="nav-link {% if request.path == '/' %}active{% endif %}">Home</a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <div class="flex items-center space-x-4">
+                        <a href="{% url 'login' %}" class="nav-link">Login</a>
+                        <a href="{% url 'register' %}" class="btn-primary">Get Started</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+    {% endif %}
+    {% endblock %}
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block show_footer %}
+    {% if not user.is_authenticated %}
+    <!-- Footer -->
+    <footer class="bg-white/80 backdrop-blur-md py-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <span class="ml-2 text-xl font-bold bg-gradient-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">Carbon Credits</span>
+                    </div>
+                    <p class="text-gray-600 mb-4">Empowering individuals and businesses to track, earn, and trade carbon credits with transparency and ease.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'home' %}" class="text-gray-600 hover:text-indigo-600">Home</a></li>
+                        <li><a href="#how-it-works" class="text-gray-600 hover:text-indigo-600">How It Works</a></li>
+                        <li><a href="{% url 'register' %}" class="text-gray-600 hover:text-indigo-600">Register</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Contact</h3>
+                    <ul class="space-y-2">
+                        <li class="text-gray-600">support@carboncredits.com</li>
+                        <li class="text-gray-600">+1 (555) 123-4567</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 mt-8 pt-8 text-center text-gray-600">
+                <p>&copy; 2024 Carbon Credits. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    {% endif %}
+    {% endblock %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

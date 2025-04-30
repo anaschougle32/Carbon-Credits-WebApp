@@ -1,0 +1,151 @@
+{% extends 'employee/partials/employee_base.html' %}
+{% load static %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_description %}{{ page_description }}{% endblock %}
+
+{% block employee_content %}
+<!-- Credits Balance -->
+<div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-700">Available Credits</h3>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ current_credits|floatformat:2 }}</p>
+        </div>
+        <div class="p-3 bg-green-100 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+    </div>
+</div>
+
+<!-- Available Rewards -->
+<div class="mb-8">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Available Rewards</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for reward in available_rewards %}
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            {% if reward.image %}
+            <img src="{{ reward.image.url }}" alt="{{ reward.name }}" class="w-full h-48 object-cover">
+            {% endif %}
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900">{{ reward.name }}</h3>
+                <p class="text-sm text-gray-500 mt-2">{{ reward.description }}</p>
+                <div class="mt-4 flex items-center justify-between">
+                    <span class="text-lg font-medium text-gray-900">{{ reward.credits_required }} credits</span>
+                    <button 
+                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium {% if current_credits >= reward.credits_required %}text-white bg-green-600 hover:bg-green-700{% else %}text-gray-700 bg-gray-100{% endif %}"
+                        {% if current_credits < reward.credits_required %}disabled{% endif %}
+                        onclick="redeemReward({{ reward.id }})"
+                    >
+                        {% if current_credits >= reward.credits_required %}
+                        Redeem
+                        {% else %}
+                        Not enough credits
+                        {% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full bg-white rounded-lg shadow-sm p-6 text-center text-gray-500">
+            No rewards available at the moment
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Redemption History -->
+<div class="bg-white rounded-lg shadow-sm">
+    <div class="p-6 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Redemption History</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reward</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credits Used</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for redemption in redemption_history %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ redemption.redeemed_at|date:"M d, Y" }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-gray-900">{{ redemption.reward.name }}</div>
+                        <div class="text-sm text-gray-500">{{ redemption.reward.description|truncatechars:50 }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ redemption.credits_used|floatformat:2 }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if redemption.status == 'completed' %}bg-green-100 text-green-800
+                            {% elif redemption.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ redemption.status|title }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                        No redemption history yet
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function redeemReward(rewardId) {
+    if (confirm('Are you sure you want to redeem this reward?')) {
+        // Submit redemption request
+        fetch(`/api/rewards/${rewardId}/redeem/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Failed to redeem reward. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
+{% endblock %} 

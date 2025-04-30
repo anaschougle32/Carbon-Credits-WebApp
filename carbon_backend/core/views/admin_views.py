@@ -11,6 +11,7 @@ import csv
 import io
 from django.urls import reverse
 from decimal import Decimal
+from datetime import datetime, timedelta
 
 # Import marketplace models if needed
 from marketplace.models import MarketOffer, MarketplaceTransaction
@@ -810,4 +811,115 @@ def employer_approval(request, employer_id):
     except EmployerProfile.DoesNotExist:
         messages.error(request, "Employer not found or already approved.")
         
-    return redirect('admin_pending_employers') 
+    return redirect('admin_pending_employers')
+
+@login_required
+@user_passes_test(is_super_admin)
+def generate_report(request):
+    """
+    API endpoint for generating report data via HTMX
+    """
+    report_type = request.GET.get('report-type', 'summary')
+    date_range = request.GET.get('date-range', '7d')
+    
+    # Get date range in actual dates
+    today = datetime.now().date()
+    if date_range == '7d':
+        start_date = today - timedelta(days=7)
+    elif date_range == '30d':
+        start_date = today - timedelta(days=30)
+    elif date_range == '90d':
+        start_date = today - timedelta(days=90)
+    elif date_range == '1y':
+        start_date = today - timedelta(days=365)
+    else:  # All time
+        start_date = None
+    
+    # Get data based on report type
+    context = {
+        'report_type': report_type,
+        'date_range': date_range,
+        'start_date': start_date,
+        'end_date': today,
+    }
+    
+    if report_type == 'summary':
+        # User statistics
+        total_users = CustomUser.objects.count()
+        total_employees = EmployeeProfile.objects.count()
+        total_employers = EmployerProfile.objects.count()
+        
+        # Trip statistics
+        total_trips = Trip.objects.count()
+        total_carbon_saved = Trip.objects.aggregate(Sum('carbon_savings'))['carbon_savings__sum'] or 0
+        
+        # Calculate average trips per employee
+        avg_trips_per_user = 0
+        if total_employees > 0:
+            avg_trips_per_user = total_trips / total_employees
+            
+        # Credit statistics
+        total_credits = CarbonCredit.objects.aggregate(Sum('amount'))['amount__sum'] or 0
+        redeemed_credits = CarbonCredit.objects.filter(status='redeemed').aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        context.update({
+            'total_users': total_users,
+            'total_employees': total_employees,
+            'total_employers': total_employers,
+            'total_trips': total_trips,
+            'total_carbon_saved': total_carbon_saved,
+            'avg_trips_per_user': round(avg_trips_per_user, 2),
+            'total_credits': total_credits,
+            'redeemed_credits': redeemed_credits,
+        })
+    
+    elif report_type == 'trips':
+        # Get trips based on date range
+        trips = Trip.objects.all().select_related('employee', 'employee__user').order_by('-start_time')
+        
+        # Apply date filter if needed
+        if start_date:
+            trips = trips.filter(start_time__gte=start_date)
+        
+        context['trips'] = trips
+    
+    elif report_type == 'credits':
+        # Get credits based on date range
+        credits = CarbonCredit.objects.all().order_by('-timestamp')
+        
+        # Apply date filter if needed
+        if start_date:
+            credits = credits.filter(timestamp__gte=start_date)
+        
+        context['credits'] = credits
+    
+    elif report_type == 'employers':
+        # Get all employers
+        employers = EmployerProfile.objects.all().order_by('company_name')
+        
+        # Get additional statistics for each employer
+        employer_stats = []
+        for employer in employers:
+            employee_count = employer.employees.count()
+            
+            # Get trips for this employer's employees
+            employee_ids = employer.employees.values_list('id', flat=True)
+            trips = Trip.objects.filter(employee__id__in=employee_ids)
+            trip_count = trips.count()
+            carbon_saved = trips.aggregate(Sum('carbon_savings'))['carbon_savings__sum'] or 0
+            
+            # Get credits for this employer
+            credits = CarbonCredit.objects.filter(owner_type='employer', owner_id=employer.id)
+            total_credits = credits.aggregate(Sum('amount'))['amount__sum'] or 0
+            
+            employer_stats.append({
+                'employer': employer,
+                'employee_count': employee_count,
+                'trip_count': trip_count,
+                'carbon_saved': carbon_saved,
+                'total_credits': total_credits
+            })
+        
+        context['employer_stats'] = employer_stats
+    
+    return render(request, f'admin/reports/_{report_type}_report.html', context) 

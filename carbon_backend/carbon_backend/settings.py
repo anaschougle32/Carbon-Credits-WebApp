@@ -69,8 +69,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'users.middleware.ApprovalMiddleware',  # Our custom approval middleware
     'django.contrib.messages.middleware.MessageMiddleware',
+    'users.middleware.ApprovalMiddleware',  # Our custom approval middleware
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_htmx.middleware.HtmxMiddleware',  # HTMX middleware
 ]
@@ -80,7 +80,7 @@ ROOT_URLCONF = 'carbon_backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [os.path.join(BASE_DIR.parent, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -166,10 +166,18 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
+# CSRF settings
+CSRF_USE_SESSIONS = True
+CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+CSRF_COOKIE_HTTPONLY = True
+
 # Session settings
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
 SESSION_COOKIE_AGE = 3600  # 1 hour in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_SAVE_EVERY_REQUEST = True
+
+# Message settings
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all origins in development
@@ -196,7 +204,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
+    os.path.join(BASE_DIR.parent, 'static'),
 ]
 
 # Media files

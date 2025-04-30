@@ -30,12 +30,21 @@ class RegisterView(generics.CreateAPIView):
     
     permission_classes = [permissions.AllowAny]
     serializer_class = UserSerializer
+    template_name = None
+    
+    def get(self, request, *args, **kwargs):
+        """Handle GET request - display the registration options page."""
+        return render(request, self.template_name)
 
 
 class EmployerRegistrationView(APIView):
     """View to register a new employer."""
     
     permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        """Handle GET request - display the registration form."""
+        return render(request, 'auth/register_employer.html')
     
     def post(self, request):
         serializer = EmployerRegistrationSerializer(data=request.data)
@@ -96,6 +105,11 @@ class EmployeeRegistrationView(APIView):
     """View to register a new employee."""
     
     permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        """Handle GET request - display the registration form."""
+        employers = EmployerProfile.objects.filter(approved=True)
+        return render(request, 'auth/register_employee.html', {'employers': employers})
     
     def post(self, request):
         serializer = EmployeeRegistrationSerializer(data=request.data)

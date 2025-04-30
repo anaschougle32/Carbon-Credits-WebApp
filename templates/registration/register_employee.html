@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Register as Employee - Carbon Credits{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #10b981 0%, #059669 50%, #0d9488 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .register-container::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .leaf-decoration {
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M17.75 21.25c-.41.41-1.09.41-1.5 0l-3.25-3.25c-.41-.41-.41-1.09 0-1.5.41-.41 1.09-.41 1.5 0l3.25 3.25c.41.41.41 1.09 0 1.5zM12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 2c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 2c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6 2.69-6 6-6z'/%3E%3C/svg%3E") no-repeat center center;
+        background-size: contain;
+        opacity: 0.2;
+    }
+
+    .leaf-decoration:nth-child(1) {
+        top: -50px;
+        right: -50px;
+        transform: rotate(30deg);
+    }
+
+    .leaf-decoration:nth-child(2) {
+        bottom: -50px;
+        left: -50px;
+        transform: rotate(-150deg);
+    }
+
+    .register-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 3rem;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        position: relative;
+        z-index: 10;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .register-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, #10b981, #059669, #0d9488);
+        background-size: 200% 100%;
+        animation: gradientMove 3s linear infinite;
+    }
+
+    @keyframes gradientMove {
+        0% { background-position: 100% 0%; }
+        100% { background-position: -100% 0%; }
+    }
+
+    .register-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .register-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #059669;
+        margin-bottom: 1rem;
+    }
+
+    .register-logo {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+
+    .register-logo svg {
+        width: 40px;
+        height: 40px;
+        color: white;
+    }
+
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+    .progress-steps::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #E5E7EB;
+        z-index: 1;
+    }
+
+    .progress-step {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid #E5E7EB;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #9CA3AF;
+        position: relative;
+        z-index: 2;
+    }
+
+    .progress-step.active {
+        border-color: #059669;
+        color: #059669;
+    }
+
+    .progress-step.completed {
+        background: #059669;
+        border-color: #059669;
+        color: white;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #4B5563;
+        font-weight: 500;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #E5E7EB;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #059669;
+        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .btn-next {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-next::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+        );
+        transition: 0.5s;
+    }
+
+    .btn-next:hover::before {
+        left: 100%;
+    }
+
+    .btn-next:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+
+    .btn-back {
+        background: transparent;
+        color: #059669;
+        border: 2px solid #059669;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-right: 1rem;
+    }
+
+    .btn-back:hover {
+        background: rgba(5, 150, 105, 0.1);
+    }
+
+    .form-actions {
+        display: flex;
+        align-items: center;
+        margin-top: 2rem;
+    }
+
+    .form-actions .btn-next {
+        flex-grow: 1;
+    }
+
+    .register-footer {
+        text-align: center;
+        margin-top: 2rem;
+    }
+
+    .register-footer a {
+        color: #059669;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+
+    .register-footer a:hover {
+        color: #0d9488;
+    }
+
+    .error-message {
+        background: rgba(220, 38, 38, 0.1);
+        color: #DC2626;
+        padding: 0.75rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+    }
+
+    .form-step {
+        display: none;
+    }
+
+    .form-step.active {
+        display: block;
+    }
+
+    @media (max-width: 640px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="leaf-decoration"></div>
+    <div class="leaf-decoration"></div>
+    
+    <div class="register-card">
+        <div class="register-header">
+            <div class="register-logo">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+            </div>
+            <h1>Employee Registration</h1>
+            <p class="text-gray-600">Join as an individual to track your carbon footprint</p>
+        </div>
+
+        <div class="progress-steps">
+            <div class="progress-step active" id="step-1">1</div>
+            <div class="progress-step" id="step-2">2</div>
+    </div>
+
+        {% if form.errors %}
+        <div class="error-message">
+            Please correct the errors below.
+    </div>
+    {% endif %}
+
+        <form method="post" action="{% url 'register_employee' %}" id="employee-register-form">
+            {% csrf_token %}
+            
+            <!-- Step 1: Personal Information -->
+            <div class="form-step active" id="step-1-content">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Personal Information</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_first_name">First Name</label>
+                        <input type="text" name="first_name" id="id_first_name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_last_name">Last Name</label>
+                        <input type="text" name="last_name" id="id_last_name" class="form-control" required>
+                    </div>
+                </div>
+                    <div class="form-group">
+                    <label for="id_email">Email</label>
+                    <input type="email" name="email" id="id_email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="id_phone">Phone Number</label>
+                    <input type="tel" name="phone" id="id_phone" class="form-control" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-next" onclick="nextStep(1)">Next</button>
+                </div>
+            </div>
+            
+            <!-- Step 2: Account Credentials -->
+            <div class="form-step" id="step-2-content">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Account Credentials</h2>
+                <div class="form-group">
+                    <label for="id_username">Username</label>
+                    <input type="text" name="username" id="id_username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="id_password1">Password</label>
+                    <input type="password" name="password1" id="id_password1" class="form-control" required>
+                        </div>
+                <div class="form-group">
+                    <label for="id_password2">Confirm Password</label>
+                    <input type="password" name="password2" id="id_password2" class="form-control" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-back" onclick="prevStep(2)">Back</button>
+                    <button type="submit" class="btn-next">Create Account</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="register-footer">
+            <p>Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function nextStep(currentStep) {
+        // Validate current step
+        const currentStepElement = document.getElementById(`step-${currentStep}-content`);
+        const inputs = currentStepElement.querySelectorAll('input[required]');
+        let isValid = true;
+        
+        inputs.forEach(input => {
+            if (!input.value) {
+                isValid = false;
+                input.classList.add('border-red-500');
+            } else {
+                input.classList.remove('border-red-500');
+            }
+        });
+        
+        if (!isValid) {
+            return;
+        }
+        
+        // Move to next step
+        document.getElementById(`step-${currentStep}`).classList.remove('active');
+        document.getElementById(`step-${currentStep}`).classList.add('completed');
+        document.getElementById(`step-${currentStep + 1}`).classList.add('active');
+        
+        document.getElementById(`step-${currentStep}-content`).classList.remove('active');
+        document.getElementById(`step-${currentStep + 1}-content`).classList.add('active');
+    }
+    
+    function prevStep(currentStep) {
+        // Move to previous step
+        document.getElementById(`step-${currentStep}`).classList.remove('active');
+        document.getElementById(`step-${currentStep - 1}`).classList.remove('completed');
+        document.getElementById(`step-${currentStep - 1}`).classList.add('active');
+        
+        document.getElementById(`step-${currentStep}-content`).classList.remove('active');
+        document.getElementById(`step-${currentStep - 1}-content`).classList.add('active');
+    }
+</script>
+{% endblock %} 

@@ -1,0 +1,142 @@
+<!-- User Overview Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">Total Users</h3>
+        <p class="text-3xl font-bold text-blue-600">{{ total_users }}</p>
+        <p class="text-sm text-gray-500 mt-2">All registered users</p>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">Active Users</h3>
+        <p class="text-3xl font-bold text-green-600">{{ active_users }}</p>
+        <p class="text-sm text-gray-500 mt-2">Active in last 30 days</p>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">Inactive Users</h3>
+        <p class="text-3xl font-bold text-red-600">{{ inactive_users }}</p>
+        <p class="text-sm text-gray-500 mt-2">Inactive for 30+ days</p>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">New Users</h3>
+        <p class="text-3xl font-bold text-purple-600">{{ new_users }}</p>
+        <p class="text-sm text-gray-500 mt-2">Joined in last 30 days</p>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">User Growth</h3>
+        <canvas id="userGrowthChart" class="w-full h-64"></canvas>
+    </div>
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">User Type Distribution</h3>
+        <canvas id="userTypeChart" class="w-full h-64"></canvas>
+    </div>
+</div>
+
+<!-- User List -->
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="p-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold">Recent Users</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Active</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for user in users %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ user.get_full_name }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ user.email }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {% if user.is_super_admin %}
+                            Super Admin
+                        {% elif user.is_bank_admin %}
+                            Bank Admin
+                        {% elif user.employer_profile %}
+                            Employer
+                        {% elif user.employee_profile %}
+                            Employee
+                        {% else %}
+                            User
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ user.date_joined|date:"M d, Y" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ user.last_login|date:"M d, Y" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if user.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {{ user.is_active|yesno:"Active,Inactive" }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // User Growth Chart
+    new Chart(document.getElementById('userGrowthChart'), {
+        type: 'line',
+        data: {
+            labels: {{ user_dates|safe }},
+            datasets: [{
+                label: 'New Users',
+                data: {{ user_counts|safe }},
+                borderColor: 'rgb(59, 130, 246)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // User Type Distribution Chart
+    new Chart(document.getElementById('userTypeChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Employees', 'Employers', 'Admins'],
+            datasets: [{
+                data: [
+                    {{ total_employees }},
+                    {{ total_employers }},
+                    {{ total_admins }}
+                ],
+                backgroundColor: [
+                    'rgb(59, 130, 246)',
+                    'rgb(16, 185, 129)',
+                    'rgb(245, 158, 11)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+});
+</script>

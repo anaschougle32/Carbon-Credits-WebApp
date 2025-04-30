@@ -1,0 +1,130 @@
+<!-- Credit Overview Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">Total Credits</h3>
+        <p class="text-3xl font-bold text-blue-600">{{ total_credits|floatformat:2 }}</p>
+        <p class="text-sm text-gray-500 mt-2">All issued credits</p>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">Redeemed Credits</h3>
+        <p class="text-3xl font-bold text-green-600">{{ redeemed_credits|floatformat:2 }}</p>
+        <p class="text-sm text-gray-500 mt-2">Credits used</p>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">Pending Credits</h3>
+        <p class="text-3xl font-bold text-yellow-600">{{ pending_credits|floatformat:2 }}</p>
+        <p class="text-sm text-gray-500 mt-2">Awaiting approval</p>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">Avg Credits/User</h3>
+        <p class="text-3xl font-bold text-purple-600">{{ avg_credits_per_user|floatformat:2 }}</p>
+        <p class="text-sm text-gray-500 mt-2">Per user average</p>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">Credits Over Time</h3>
+        <canvas id="creditsChart" class="w-full h-64"></canvas>
+    </div>
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">Credit Status Distribution</h3>
+        <canvas id="statusChart" class="w-full h-64"></canvas>
+    </div>
+</div>
+
+<!-- Credit Transactions -->
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="p-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold">Recent Transactions</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for credit in credits %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ credit.created_at|date:"M d, Y" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ credit.user.get_full_name }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ credit.amount|floatformat:2 }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if credit.status == 'redeemed' %}bg-green-100 text-green-800
+                            {% elif credit.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ credit.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ credit.get_type_display }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Credits Over Time Chart
+    new Chart(document.getElementById('creditsChart'), {
+        type: 'line',
+        data: {
+            labels: {{ credit_dates|safe }},
+            datasets: [{
+                label: 'Credits Issued',
+                data: {{ credit_amounts|safe }},
+                borderColor: 'rgb(59, 130, 246)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Credit Status Distribution Chart
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Available', 'Redeemed', 'Pending'],
+            datasets: [{
+                data: [
+                    {{ total_credits|floatformat:2 }},
+                    {{ redeemed_credits|floatformat:2 }},
+                    {{ pending_credits|floatformat:2 }}
+                ],
+                backgroundColor: [
+                    'rgb(59, 130, 246)',
+                    'rgb(16, 185, 129)',
+                    'rgb(245, 158, 11)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+});
+</script> 

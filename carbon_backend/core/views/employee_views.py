@@ -15,6 +15,7 @@ from django.urls import reverse
 from users.models import EmployeeProfile
 from marketplace.models import MarketOffer, EmployeeCreditOffer
 from datetime import timedelta
+from django.db.models.functions import TruncMonth
 
 @login_required
 @user_passes_test(lambda u: u.is_employee)
@@ -23,22 +24,6 @@ def dashboard(request):
     Dashboard view for employees.
     """
     employee = request.user.employee_profile
-    
-    # Calculate carbon credits earned
-    total_credits = CarbonCredit.objects.filter(
-        owner_type='employee', 
-        owner_id=employee.id,
-        status='active'
-    ).aggregate(Sum('amount'))['amount__sum'] or 0
-    
-    # Credits earned in the last 7 days
-    week_ago = timezone.now() - timedelta(days=7)
-    credits_last_week = CarbonCredit.objects.filter(
-        owner_type='employee', 
-        owner_id=employee.id, 
-        status='active',
-        timestamp__gte=week_ago
-    ).aggregate(Sum('amount'))['amount__sum'] or 0
     
     # Get trip statistics
     total_trips = Trip.objects.filter(employee=employee).count()
@@ -59,15 +44,6 @@ def dashboard(request):
         verification_status='verified'
     ).aggregate(Sum('carbon_savings'))['carbon_savings__sum'] or 0
     
-    # Calculate streak (consecutive days with verified trips)
-    # For simplicity, we'll just count consecutive days with trips
-    streak = calculate_streak(employee)
-    best_streak = getattr(employee, 'best_streak', 0)
-    
-    if streak > best_streak:
-        employee.best_streak = streak
-        employee.save()
-    
     # Get recent trips
     recent_trips = Trip.objects.filter(
         employee=employee
@@ -79,61 +55,18 @@ def dashboard(request):
         verification_status='pending'
     ).count()
     
-    # Tree equivalent (rough estimate)
-    tree_equivalent = int(co2_saved / 21) if co2_saved else 0  # 1 tree absorbs ~21kg CO2 per year
-    
     context = {
         'page_title': 'Employee Dashboard',
         'employee': employee,
-        'total_credits': total_credits,
-        'credits_last_week': credits_last_week,
         'total_trips': total_trips,
         'completed_trips': completed_trips,
         'total_distance': total_distance,
         'co2_saved': co2_saved,
-        'streak': streak,
-        'best_streak': best_streak,
         'recent_trips': recent_trips,
         'pending_trips': pending_trips,
-        'tree_equivalent': tree_equivalent,
-        'wallet_balance': employee.wallet_balance
     }
     
     return render(request, 'employee/dashboard.html', context)
-
-def calculate_streak(employee):
-    """Calculate the employee's current streak of consecutive days with trips."""
-    verified_trips = Trip.objects.filter(
-        employee=employee,
-        verification_status='verified'
-    ).order_by('-start_time')
-    
-    if not verified_trips:
-        return 0
-    
-    # Get dates of verified trips
-    trip_dates = [trip.start_time.date() for trip in verified_trips]
-    
-    # Remove duplicates and sort
-    unique_dates = sorted(set(trip_dates), reverse=True)
-    
-    # Calculate streak
-    streak = 1
-    today = timezone.now().date()
-    
-    # If no trip today, start from the most recent trip date
-    if unique_dates[0] != today:
-        today = unique_dates[0]
-    
-    # Check for consecutive days
-    for i in range(1, len(unique_dates)):
-        prev_date = today - timedelta(days=i)
-        if prev_date in unique_dates:
-            streak += 1
-        else:
-            break
-    
-    return streak
 
 @login_required
 @user_passes_test(lambda u: u.is_employee)
@@ -248,21 +181,18 @@ def trips_list(request):
     # Calculate aggregate statistics
     stats = trips.aggregate(
         total_distance=Sum('distance_km'),
-        total_co2_saved=Sum('carbon_savings'),
-        total_credits=Sum('credits_earned')
+        total_co2_saved=Sum('carbon_savings')
     )
     
     # Default values if no trips exist
     total_distance = stats['total_distance'] or 0
     total_co2_saved = stats['total_co2_saved'] or 0
-    total_credits = stats['total_credits'] or 0
     
     context = {
         'trips': trips,
         'page_title': 'My Trips',
         'total_distance': total_distance,
         'total_co2_saved': total_co2_saved,
-        'total_credits': total_credits,
     }
     
     return render(request, 'employee/trips.html', context)
@@ -653,4 +583,42 @@ def cancel_offer(request, offer_id):
     except EmployeeCreditOffer.DoesNotExist:
         messages.error(request, "Offer not found or already processed.")
     
-    return redirect('employee_marketplace') 
+    return redirect('employee_marketplace')
+
+@login_required
+def credits_list(request):
+    """Display employee's carbon credits and history."""
+    employee = request.user.employee_profile
+    
+    # Get all credits for the employee
+    credits = CarbonCredit.objects.filter(
+        owner_type='employee',
+        owner_id=employee.id
+    ).order_by('-created_at')
+    
+    # Calculate total credits
+    total_credits = credits.aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Get credit history grouped by month
+    credit_history = credits.annotate(
+        month=TruncMonth('created_at')
+    ).values('month').annotate(
+        total=Sum('amount')
+    ).order_by('-month')
+    
+    # Convert credit history to list for JSON serialization
+    credit_history_list = [
+        {
+            'month': item['month'].strftime('%Y-%m-%d'),
+            'total': float(item['total'])
+        }
+        for item in credit_history
+    ]
+    
+    context = {
+        'credits': credits,
+        'total_credits': total_credits,
+        'credit_history': credit_history_list,
+    }
+    
+    return render(request, 'employee/credits.html', context) 

@@ -1,0 +1,201 @@
+{% extends 'employee/partials/employee_base.html' %}
+{% load static %}
+
+{% block page_title %}Log Trip{% endblock %}
+{% block page_description %}Record your sustainable commute{% endblock %}
+
+{% block employee_content %}
+<div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+    <h2 class="text-lg font-semibold text-gray-900 mb-6">Trip Details</h2>
+    
+    {% if not has_home_location %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    You need to register your home location first.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" action="{% url 'register_home_location' %}" class="mb-8" id="home-location-form">
+        {% csrf_token %}
+        <input type="hidden" name="register_home" value="true">
+        <input type="hidden" name="home_latitude" id="home_latitude">
+        <input type="hidden" name="home_longitude" id="home_longitude">
+        
+    <div class="mb-6">
+            <label for="home_address" class="block text-sm font-medium text-gray-700 mb-1">Home Address</label>
+            <input type="text" name="home_address" id="home_address" required
+                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        
+        <div class="mb-6">
+            <div id="home_location_map" style="height: 300px;" class="w-full rounded-lg border border-gray-300"></div>
+                </div>
+                
+                <div class="flex justify-end">
+            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Register Home Location
+            </button>
+                </div>
+    </form>
+    {% else %}
+            
+    <form method="post" action="{% url 'record_trip' %}" class="space-y-6">
+        {% csrf_token %}
+                
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                <label for="start_location" class="block text-sm font-medium text-gray-700 mb-1">Start Location</label>
+                <select id="start_location" name="start_location" required
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select a location</option>
+                    {% if home_location %}
+                    <option value="{{ home_location.id }}">Home - {{ home_location.address }}</option>
+                            {% endif %}
+                            {% for location in employer_locations %}
+                    <option value="{{ location.id }}">{{ location.name }} - {{ location.address }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                <label for="end_location" class="block text-sm font-medium text-gray-700 mb-1">End Location</label>
+                <select id="end_location" name="end_location" required
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select a location</option>
+                    {% if home_location %}
+                    <option value="{{ home_location.id }}">Home - {{ home_location.address }}</option>
+                            {% endif %}
+                            {% for location in employer_locations %}
+                    <option value="{{ location.id }}">{{ location.name }} - {{ location.address }}</option>
+                            {% endfor %}
+                        </select>
+            </div>
+            
+            <div>
+                <label for="transport_type" class="block text-sm font-medium text-gray-700 mb-1">Transport Type</label>
+                <select id="transport_type" name="transport_type" required
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Select transport type</option>
+                    <option value="public_transport">Public Transport</option>
+                    <option value="bicycle">Bicycle</option>
+                    <option value="walking">Walking</option>
+                    <option value="carpool">Carpool</option>
+                    <option value="work_from_home">Work From Home</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input type="date" id="date" name="date" required value="{{ today|date:'Y-m-d' }}"
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            
+                    <div>
+                <label for="start_time" class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                <input type="time" id="start_time" name="start_time" required
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            
+            <div>
+                <label for="end_time" class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                <input type="time" id="end_time" name="end_time" required
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+        </div>
+        
+        <div>
+            <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+            <textarea id="notes" name="notes" rows="3"
+                      class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+        </div>
+        
+        <div class="flex items-center justify-between pt-4">
+            <a href="{% url 'employee_trips' %}" class="text-blue-600 hover:text-blue-800">
+                Cancel
+            </a>
+            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Submit Trip
+            </button>
+            </div>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if not has_home_location %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the map
+        const map = new google.maps.Map(document.getElementById('home_location_map'), {
+            center: { lat: 51.5074, lng: -0.1278 }, // Default to London
+            zoom: 12
+        });
+        
+        // Initialize the marker
+        const marker = new google.maps.Marker({
+            map: map,
+            draggable: true,
+            position: { lat: 51.5074, lng: -0.1278 }
+        });
+        
+        // Initialize the geocoder
+        const geocoder = new google.maps.Geocoder();
+        
+        // Initialize the autocomplete
+        const input = document.getElementById('home_address');
+        const autocomplete = new google.maps.places.Autocomplete(input);
+        
+        // Set the fields to retrieve from Places API
+        autocomplete.setFields(['address_components', 'geometry', 'name']);
+        
+        // Bias the autocomplete results toward the map's viewport
+        autocomplete.bindTo('bounds', map);
+        
+        // Listen for place_changed events on the Autocomplete input
+        autocomplete.addListener('place_changed', function() {
+            const place = autocomplete.getPlace();
+            
+            if (!place.geometry) {
+                console.log("No details available for input: " + place.name);
+                return;
+            }
+            
+            // Set the position of the marker and center the map
+            marker.setPosition(place.geometry.location);
+            map.setCenter(place.geometry.location);
+            map.setZoom(15);
+            
+            // Update the hidden fields with the coordinates
+            document.getElementById('home_latitude').value = place.geometry.location.lat();
+            document.getElementById('home_longitude').value = place.geometry.location.lng();
+        });
+        
+        // Update the hidden fields when the marker is dragged
+        google.maps.event.addListener(marker, 'dragend', function() {
+            document.getElementById('home_latitude').value = marker.getPosition().lat();
+            document.getElementById('home_longitude').value = marker.getPosition().lng();
+            
+            // Reverse geocode the position to update the address field
+            geocoder.geocode({ 'location': marker.getPosition() }, function(results, status) {
+                if (status === 'OK') {
+                    if (results[0]) {
+                        document.getElementById('home_address').value = results[0].formatted_address;
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endif %}
+{% endblock %} 

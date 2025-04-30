@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block show_header %}{% endblock %}
+{% block show_footer %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .employee-layout {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    .employee-sidebar {
+        width: 280px;
+        background: white;
+        border-right: 1px solid #e5e7eb;
+        padding: 1.5rem;
+        position: fixed;
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+    .employee-main {
+        flex: 1;
+        margin-left: 280px;
+        padding: 2rem;
+        background: #f9fafb;
+    }
+
+    .sidebar-header {
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .sidebar-logo {
+        width: 40px;
+        height: 40px;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        margin: 0.25rem 0;
+        border-radius: 0.5rem;
+        color: #6b7280;
+        transition: all 0.2s;
+    }
+
+    .nav-item:hover {
+        background: #f3f4f6;
+        color: #111827;
+    }
+
+    .nav-item.active {
+        background: #f3f4f6;
+        color: #4f46e5;
+    }
+
+    .nav-item svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin-right: 0.75rem;
+    }
+
+    .user-profile {
+        padding: 1rem;
+        margin-top: auto;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .user-initials {
+        width: 2.5rem;
+        height: 2.5rem;
+        background: #e5e7eb;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #4b5563;
+        margin-right: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+        .employee-sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.2s;
+        }
+
+        .employee-sidebar.show {
+            transform: translateX(0);
+        }
+
+        .employee-main {
+            margin-left: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="employee-layout">
+    <!-- Sidebar -->
+    <aside class="employee-sidebar">
+        <div class="sidebar-header">
+            <img src="{% static 'img/logo.png' %}" alt="Logo" class="sidebar-logo">
+        </div>
+
+        <!-- Navigation -->
+        <nav class="space-y-1">
+            <a href="{% url 'employee_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'employee_dashboard' %}active{% endif %}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Dashboard
+            </a>
+
+            <a href="{% url 'employee_trips' %}" class="nav-item {% if request.resolver_match.url_name == 'employee_trips' %}active{% endif %}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                My Trips
+            </a>
+
+            <a href="{% url 'record_trip' %}" class="nav-item {% if request.resolver_match.url_name == 'record_trip' %}active{% endif %}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Record Trip
+            </a>
+
+            <a href="{% url 'logout' %}" class="nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+            </a>
+        </nav>
+
+        <!-- User Profile -->
+        <div class="user-profile mt-auto">
+            <div class="flex items-center">
+                <div class="user-initials">
+                    {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
+                </div>
+                <div>
+                    <div class="text-sm font-medium text-gray-900">{{ request.user.get_full_name }}</div>
+                    <div class="text-xs text-gray-500">Employee</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="employee-main">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">{% block page_title %}{% endblock %}</h1>
+            <p class="mt-1 text-sm text-gray-600">{% block page_description %}{% endblock %}</p>
+        </div>
+
+        {% block employee_content %}{% endblock %}
+    </main>
+</div>
+
+<!-- Mobile Menu Toggle -->
+<button type="button" class="md:hidden fixed bottom-4 right-4 bg-indigo-600 p-3 rounded-full shadow-lg text-white" onclick="toggleSidebar()">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.employee-sidebar');
+        sidebar.classList.toggle('show');
+    }
+</script>
+{% endblock %} 

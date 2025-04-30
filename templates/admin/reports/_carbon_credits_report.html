@@ -1,0 +1,169 @@
+{% extends "admin/partials/admin_base.html" %}
+{% load static %}
+
+{% block page_title %}Carbon Credits Report{% endblock %}
+{% block page_description %}Detailed analysis of carbon credits data{% endblock %}
+
+{% block admin_content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Credits Overview -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Credits Overview</h3>
+            <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+        <div class="space-y-2">
+            <p class="text-sm text-gray-600">Total Credits: <span class="font-semibold text-gray-900">{{ total_credits }}</span></p>
+            <p class="text-sm text-gray-600">Active Credits: <span class="font-semibold text-gray-900">{{ active_credits }}</span></p>
+            <p class="text-sm text-gray-600">Redeemed Credits: <span class="font-semibold text-gray-900">{{ redeemed_credits }}</span></p>
+        </div>
+    </div>
+
+    <!-- Carbon Impact -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Carbon Impact</h3>
+            <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+        </div>
+        <div class="space-y-2">
+            <p class="text-sm text-gray-600">Total Carbon Saved: <span class="font-semibold text-gray-900">{{ total_carbon_saved|floatformat:2 }} kg</span></p>
+            <p class="text-sm text-gray-600">Avg Carbon per Credit: <span class="font-semibold text-gray-900">{{ avg_carbon_per_credit|floatformat:2 }} kg</span></p>
+            <p class="text-sm text-gray-600">Credits per User: <span class="font-semibold text-gray-900">{{ credits_per_user|floatformat:1 }}</span></p>
+        </div>
+    </div>
+
+    <!-- User Distribution -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">User Distribution</h3>
+            <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+        </div>
+        <div class="space-y-2">
+            <p class="text-sm text-gray-600">Active Users: <span class="font-semibold text-gray-900">{{ active_users }}</span></p>
+            <p class="text-sm text-gray-600">Top Earners: <span class="font-semibold text-gray-900">{{ top_earners }}</span></p>
+            <p class="text-sm text-gray-600">Avg Credits/User: <span class="font-semibold text-gray-900">{{ avg_credits_per_user|floatformat:1 }}</span></p>
+        </div>
+    </div>
+
+    <!-- Date Range Info -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Report Period</h3>
+            <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        </div>
+        <div class="space-y-2">
+            <p class="text-sm text-gray-600">Start Date: <span class="font-semibold text-gray-900">{{ start_date|date:"M d, Y" }}</span></p>
+            <p class="text-sm text-gray-600">End Date: <span class="font-semibold text-gray-900">{{ end_date|date:"M d, Y" }}</span></p>
+            <p class="text-sm text-gray-600">Range: <span class="font-semibold text-gray-900">{{ date_range }}</span></p>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Credits Over Time -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Credits Over Time</h3>
+        <canvas id="creditsChart" class="w-full h-64"></canvas>
+    </div>
+
+    <!-- User Distribution -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">User Distribution</h3>
+        <canvas id="userDistributionChart" class="w-full h-64"></canvas>
+    </div>
+</div>
+
+<!-- Detailed Credits Table -->
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Credit Details</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credits</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Carbon Saved</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for credit in credits %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ credit.date|date:"M d, Y" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ credit.user.get_full_name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ credit.amount }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ credit.carbon_saved|floatformat:2 }} kg</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if credit.status == 'active' %}bg-green-100 text-green-800
+                            {% elif credit.status == 'redeemed' %}bg-blue-100 text-blue-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ credit.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ credit.get_source_display }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Credits Over Time Chart
+    const creditsCtx = document.getElementById('creditsChart').getContext('2d');
+    new Chart(creditsCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Credits Earned',
+                data: [120, 190, 300, 250, 280, 320],
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // User Distribution Chart
+    const userDistCtx = document.getElementById('userDistributionChart').getContext('2d');
+    new Chart(userDistCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Top 20%', 'Middle 60%', 'Bottom 20%'],
+            datasets: [{
+                data: [40, 50, 10],
+                backgroundColor: [
+                    'rgb(75, 192, 192)',
+                    'rgb(255, 205, 86)',
+                    'rgb(255, 99, 132)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

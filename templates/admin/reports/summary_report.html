@@ -1,0 +1,67 @@
+{% extends "admin/partials/admin_base.html" %}
+{% load static %}
+
+{% block page_title %}Summary Report{% endblock %}
+{% block page_description %}Overview of system statistics and metrics{% endblock %}
+
+{% block admin_content %}
+<div class="p-4">
+    {% include "admin/reports/_summary_report.html" %}
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <div class="bg-white rounded-lg shadow p-4">
+            <h3 class="text-lg font-semibold mb-4">Credits Over Time</h3>
+            <canvas id="creditsChart"></canvas>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <h3 class="text-lg font-semibold mb-4">Transport Mode Distribution</h3>
+            <canvas id="transportChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js initialization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Credits Over Time Chart
+    new Chart(document.getElementById('creditsChart'), {
+        type: 'line',
+        data: {
+            labels: {{ chart_data.credits.labels|safe }},
+            datasets: [{
+                label: 'Credits Earned',
+                data: {{ chart_data.credits.data|safe }},
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Transport Mode Distribution Chart
+    new Chart(document.getElementById('transportChart'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_data.transport.labels|safe }},
+            datasets: [{
+                data: {{ chart_data.transport.data|safe }},
+                backgroundColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 205, 86)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+});
+</script>
+{% endblock %} 

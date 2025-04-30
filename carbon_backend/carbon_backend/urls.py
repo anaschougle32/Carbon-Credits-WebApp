@@ -24,6 +24,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.views.generic import TemplateView
 from django.shortcuts import redirect, HttpResponseRedirect
 from users.models import EmployerProfile
+from django.contrib import messages
 
 # API URLs
 api_urlpatterns = [
@@ -56,40 +57,53 @@ class RegisterView(TemplateView):
 # Dashboard redirect function
 def dashboard_redirect(request):
     if not request.user.is_authenticated:
+        messages.info(request, "Please log in to access your dashboard.")
         return redirect('login')
         
-    if request.user.is_super_admin:
-        return redirect('admin_dashboard')
-    elif request.user.is_bank_admin:
-        return redirect('bank:bank_dashboard')
-    elif request.user.is_employer:
-        return redirect('employer:employer_dashboard')
-    elif request.user.is_employee:
-        return redirect('employee_dashboard')
-    else:
-        # Fallback to employee dashboard if no specific role is set
-        return redirect('employee_dashboard')
+    try:
+        if request.user.is_super_admin:
+            return redirect('admin_dashboard')
+        elif request.user.is_bank_admin:
+            return redirect('bank:bank_dashboard')
+        elif request.user.is_employer:
+            return redirect('employer:employer_dashboard')
+        elif request.user.is_employee:
+            return redirect('employee_dashboard')
+        else:
+            # Fallback to employee dashboard if no specific role is set
+            messages.warning(request, "No specific role detected, redirecting to employee dashboard.")
+            return redirect('employee_dashboard')
+    except Exception as e:
+        messages.error(request, f"Error accessing dashboard: {str(e)}")
+        return redirect('login')
 
 # Profile redirect function
 def profile_redirect(request):
     if not request.user.is_authenticated:
+        messages.info(request, "Please log in to access your profile.")
         return redirect('login')
         
-    if request.user.is_super_admin:
-        return redirect('admin_profile')
-    elif request.user.is_bank_admin:
-        return redirect('bank:profile')
-    elif request.user.is_employer:
-        return redirect('employer:profile')
-    elif request.user.is_employee:
-        return redirect('employee_profile')
-    else:
-        # Fallback to login if no specific role is set
+    try:
+        if request.user.is_super_admin:
+            return redirect('admin_profile')
+        elif request.user.is_bank_admin:
+            return redirect('bank:profile')
+        elif request.user.is_employer:
+            return redirect('employer:profile')
+        elif request.user.is_employee:
+            return redirect('employee_profile')
+        else:
+            # Fallback to login if no specific role is set
+            messages.warning(request, "No specific role detected.")
+            return redirect('login')
+    except Exception as e:
+        messages.error(request, f"Error accessing profile: {str(e)}")
         return redirect('login')
 
 # Custom logout view function
 def logout_view(request):
     logout(request)
+    messages.success(request, "You have been successfully logged out.")
     return HttpResponseRedirect('/')
 
 # Template-based URLs
