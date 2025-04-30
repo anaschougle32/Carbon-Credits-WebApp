@@ -30,7 +30,7 @@
         <input type="hidden" name="home_latitude" id="home_latitude">
         <input type="hidden" name="home_longitude" id="home_longitude">
         
-    <div class="mb-6">
+        <div class="mb-6">
             <label for="home_address" class="block text-sm font-medium text-gray-700 mb-1">Home Address</label>
             <input type="text" name="home_address" id="home_address" required
                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
@@ -38,48 +38,54 @@
         
         <div class="mb-6">
             <div id="home_location_map" style="height: 300px;" class="w-full rounded-lg border border-gray-300"></div>
-                </div>
-                
-                <div class="flex justify-end">
+        </div>
+        
+        <div class="flex justify-end">
             <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 Register Home Location
             </button>
-                </div>
+        </div>
     </form>
     {% else %}
             
-    <form method="post" action="{% url 'record_trip' %}" class="space-y-6">
+    <form method="post" action="{% url 'employee_trip_log' %}" class="space-y-6" id="trip-form">
         {% csrf_token %}
-                
+        
+        <div class="mb-6">
+            <div class="relative">
+                <input type="text" id="search-box" placeholder="Search location..."
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                <label for="start_location" class="block text-sm font-medium text-gray-700 mb-1">Start Location</label>
-                <select id="start_location" name="start_location" required
+            <div>
+                <label for="start_address" class="block text-sm font-medium text-gray-700 mb-1">Start Location</label>
+                <input type="text" id="start_address" name="start_address" required
                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Select a location</option>
-                    {% if home_location %}
-                    <option value="{{ home_location.id }}">Home - {{ home_location.address }}</option>
-                            {% endif %}
-                            {% for location in employer_locations %}
-                    <option value="{{ location.id }}">{{ location.name }} - {{ location.address }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div>
-                <label for="end_location" class="block text-sm font-medium text-gray-700 mb-1">End Location</label>
-                <select id="end_location" name="end_location" required
-                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Select a location</option>
-                    {% if home_location %}
-                    <option value="{{ home_location.id }}">Home - {{ home_location.address }}</option>
-                            {% endif %}
-                            {% for location in employer_locations %}
-                    <option value="{{ location.id }}">{{ location.name }} - {{ location.address }}</option>
-                            {% endfor %}
-                        </select>
+                <input type="hidden" id="start_latitude" name="start_latitude">
+                <input type="hidden" id="start_longitude" name="start_longitude">
             </div>
             
+            <div>
+                <label for="end_address" class="block text-sm font-medium text-gray-700 mb-1">End Location</label>
+                <input type="text" id="end_address" name="end_address" required
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                <input type="hidden" id="end_latitude" name="end_latitude">
+                <input type="hidden" id="end_longitude" name="end_longitude">
+            </div>
+        </div>
+        
+        <div class="mb-6">
+            <div id="trip_map" style="height: 400px;" class="w-full rounded-lg border border-gray-300"></div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label for="transport_type" class="block text-sm font-medium text-gray-700 mb-1">Transport Type</label>
                 <select id="transport_type" name="transport_type" required
@@ -98,17 +104,19 @@
                 <input type="date" id="date" name="date" required value="{{ today|date:'Y-m-d' }}"
                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
             </div>
-            
-                    <div>
-                <label for="start_time" class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                <input type="time" id="start_time" name="start_time" required
-                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-            </div>
-            
+
             <div>
-                <label for="end_time" class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                <input type="time" id="end_time" name="end_time" required
-                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                <label for="distance" class="block text-sm font-medium text-gray-700 mb-1">Distance (km)</label>
+                <input type="number" id="distance" name="distance" step="0.1" required readonly
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-50">
+                <p class="mt-1 text-sm text-gray-500">Distance will be calculated automatically from the map</p>
+            </div>
+
+            <div>
+                <label for="estimated_credits" class="block text-sm font-medium text-gray-700 mb-1">Estimated Credits</label>
+                <input type="text" id="estimated_credits" readonly
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50">
+                <p class="mt-1 text-sm text-gray-500">Credits based on distance and transport type</p>
             </div>
         </div>
         
@@ -125,77 +133,204 @@
             <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 Submit Trip
             </button>
-            </div>
-        </form>
+        </div>
+    </form>
     {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
-{% if not has_home_location %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize the map
-        const map = new google.maps.Map(document.getElementById('home_location_map'), {
-            center: { lat: 51.5074, lng: -0.1278 }, // Default to London
-            zoom: 12
-        });
+    let map;
+    let startMarker;
+    let endMarker;
+    let directionsService;
+    let directionsRenderer;
+    let startAutocomplete;
+    let endAutocomplete;
+
+    function initMap() {
+        // Default center (Boca Raton, Florida)
+        const defaultCenter = { lat: 26.3683, lng: -80.1289 };
         
-        // Initialize the marker
-        const marker = new google.maps.Marker({
+        // Create map instance
+        map = new google.maps.Map(document.getElementById('trip_map'), {
+            center: defaultCenter,
+            zoom: 12,
+            mapTypeControl: true,
+            streetViewControl: false,
+            fullscreenControl: true
+        });
+
+        // Initialize directions service and renderer
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
             map: map,
+            suppressMarkers: true,
+            preserveViewport: true
+        });
+
+        // Create markers
+        startMarker = new google.maps.Marker({
+            map: map,
+            position: defaultCenter,
             draggable: true,
-            position: { lat: 51.5074, lng: -0.1278 }
+            icon: {
+                url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                scaledSize: new google.maps.Size(40, 40)
+            },
+            title: 'Start Location'
         });
+
+        endMarker = new google.maps.Marker({
+            map: map,
+            position: defaultCenter,
+            draggable: true,
+            icon: {
+                url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                scaledSize: new google.maps.Size(40, 40)
+            },
+            title: 'End Location'
+        });
+
+        // Initialize autocomplete
+        const startInput = document.getElementById('start_address');
+        const endInput = document.getElementById('end_address');
         
-        // Initialize the geocoder
+        startAutocomplete = new google.maps.places.Autocomplete(startInput);
+        endAutocomplete = new google.maps.places.Autocomplete(endInput);
+
+        [startAutocomplete, endAutocomplete].forEach(autocomplete => {
+            autocomplete.setFields(['address_components', 'geometry', 'name']);
+            autocomplete.bindTo('bounds', map);
+        });
+
+        // Handle start location selection
+        startAutocomplete.addListener('place_changed', function() {
+            const place = startAutocomplete.getPlace();
+            if (!place.geometry) return;
+
+            startMarker.setPosition(place.geometry.location);
+            document.getElementById('start_latitude').value = place.geometry.location.lat();
+            document.getElementById('start_longitude').value = place.geometry.location.lng();
+            updateRoute();
+        });
+
+        // Handle end location selection
+        endAutocomplete.addListener('place_changed', function() {
+            const place = endAutocomplete.getPlace();
+            if (!place.geometry) return;
+
+            endMarker.setPosition(place.geometry.location);
+            document.getElementById('end_latitude').value = place.geometry.location.lat();
+            document.getElementById('end_longitude').value = place.geometry.location.lng();
+            updateRoute();
+        });
+
+        // Handle marker drag events
+        startMarker.addListener('dragend', function() {
+            const position = startMarker.getPosition();
+            updateLocationFromMarker(position, 'start');
+            updateRoute();
+        });
+
+        endMarker.addListener('dragend', function() {
+            const position = endMarker.getPosition();
+            updateLocationFromMarker(position, 'end');
+            updateRoute();
+        });
+
+        // Add event listener for transport type changes
+        document.getElementById('transport_type').addEventListener('change', updateRoute);
+    }
+
+    function updateLocationFromMarker(position, type) {
         const geocoder = new google.maps.Geocoder();
+        const input = document.getElementById(`${type}_address`);
         
-        // Initialize the autocomplete
-        const input = document.getElementById('home_address');
-        const autocomplete = new google.maps.places.Autocomplete(input);
-        
-        // Set the fields to retrieve from Places API
-        autocomplete.setFields(['address_components', 'geometry', 'name']);
-        
-        // Bias the autocomplete results toward the map's viewport
-        autocomplete.bindTo('bounds', map);
-        
-        // Listen for place_changed events on the Autocomplete input
-        autocomplete.addListener('place_changed', function() {
-            const place = autocomplete.getPlace();
-            
-            if (!place.geometry) {
-                console.log("No details available for input: " + place.name);
-                return;
+        geocoder.geocode({ location: position }, function(results, status) {
+            if (status === 'OK' && results[0]) {
+                input.value = results[0].formatted_address;
+                document.getElementById(`${type}_latitude`).value = position.lat();
+                document.getElementById(`${type}_longitude`).value = position.lng();
             }
-            
-            // Set the position of the marker and center the map
-            marker.setPosition(place.geometry.location);
-            map.setCenter(place.geometry.location);
-            map.setZoom(15);
-            
-            // Update the hidden fields with the coordinates
-            document.getElementById('home_latitude').value = place.geometry.location.lat();
-            document.getElementById('home_longitude').value = place.geometry.location.lng();
         });
-        
-        // Update the hidden fields when the marker is dragged
-        google.maps.event.addListener(marker, 'dragend', function() {
-            document.getElementById('home_latitude').value = marker.getPosition().lat();
-            document.getElementById('home_longitude').value = marker.getPosition().lng();
-            
-            // Reverse geocode the position to update the address field
-            geocoder.geocode({ 'location': marker.getPosition() }, function(results, status) {
+    }
+
+    function updateRoute() {
+        const transportType = document.getElementById('transport_type').value;
+        const travelMode = getTravelMode(transportType);
+
+        if (startMarker.getPosition() && endMarker.getPosition()) {
+            const request = {
+                origin: startMarker.getPosition(),
+                destination: endMarker.getPosition(),
+                travelMode: travelMode
+            };
+
+            directionsService.route(request, function(result, status) {
                 if (status === 'OK') {
-                    if (results[0]) {
-                        document.getElementById('home_address').value = results[0].formatted_address;
-                    }
+                    directionsRenderer.setDirections(result);
+                    
+                    // Update distance and estimated credits
+                    const distance = result.routes[0].legs[0].distance.value / 1000; // Convert to km
+                    document.getElementById('distance').value = distance.toFixed(1);
+                    calculateEstimatedCredits(distance);
+
+                    // Fit bounds to show the entire route
+                    const bounds = new google.maps.LatLngBounds();
+                    bounds.extend(startMarker.getPosition());
+                    bounds.extend(endMarker.getPosition());
+                    map.fitBounds(bounds);
                 }
             });
-        });
-    });
+        }
+    }
+
+    function getTravelMode(transportType) {
+        switch(transportType) {
+            case 'walking':
+                return google.maps.TravelMode.WALKING;
+            case 'bicycle':
+                return google.maps.TravelMode.BICYCLING;
+            case 'public_transport':
+                return google.maps.TravelMode.TRANSIT;
+            default:
+                return google.maps.TravelMode.DRIVING;
+        }
+    }
+
+    function calculateEstimatedCredits(distance) {
+        const transportType = document.getElementById('transport_type').value;
+        let credits = 0;
+
+        if (transportType === 'work_from_home') {
+            credits = 10; // Fixed credits for WFH
+        } else {
+            const creditFactors = {
+                'walking': 6,
+                'bicycle': 5,
+                'public_transport': 3,
+                'carpool': 2,
+                'car': 0.5
+            };
+            const factor = creditFactors[transportType] || 1;
+            credits = distance * factor;
+        }
+
+        document.getElementById('estimated_credits').value = credits.toFixed(2) + ' credits';
+    }
+
+    // Load Google Maps API
+    function loadGoogleMaps() {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initMap`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+    }
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', loadGoogleMaps);
 </script>
-{% endif %}
 {% endblock %} 

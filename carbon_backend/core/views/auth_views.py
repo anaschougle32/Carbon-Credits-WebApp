@@ -8,16 +8,7 @@ from users.forms import LoginForm, EmployeeRegistrationForm
 
 def login_view(request):
     if request.user.is_authenticated:
-        # Check if the user is approved
-        if not request.user.approved:
-            # Set registration type based on user role
-            if request.user.is_employee:
-                request.session['registration_type'] = 'employee'
-            elif request.user.is_employer:
-                request.session['registration_type'] = 'employer'
-            return redirect('pending_approval')
-            
-        # If approved, redirect to appropriate dashboard
+        # If authenticated, redirect to appropriate dashboard
         if request.user.is_employee:
             return redirect('employee_dashboard')
         elif request.user.is_employer:
@@ -34,17 +25,6 @@ def login_view(request):
             
             if user is not None:
                 login(request, user)
-                
-                # Check if the user is approved
-                if not user.approved:
-                    messages.info(request, "Your account is pending approval.")
-                    # Set registration type based on user role
-                    if user.is_employee:
-                        request.session['registration_type'] = 'employee'
-                    elif user.is_employer:
-                        request.session['registration_type'] = 'employer'
-                    return redirect('pending_approval')
-                
                 messages.success(request, f"Welcome back, {user.get_full_name()}!")
                 
                 if user.is_employee:
@@ -91,7 +71,7 @@ def employee_register(request):
                 return render(request, 'registration/register_employee.html', {'form': form})
             
             try:
-                # Create user account (set approved to False)
+                # Create user account (set approved to True)
                 user = CustomUser.objects.create_user(
                     username=username,
                     email=email,
@@ -100,7 +80,7 @@ def employee_register(request):
                     last_name=last_name,
                     is_employee=True,
                     is_active=True,
-                    approved=False  # User needs approval
+                    approved=True  # User is automatically approved
                 )
                 
                 # Create employee profile
@@ -108,7 +88,7 @@ def employee_register(request):
                     user=user,
                     employer=employer,
                     employee_id=employee_id,
-                    approved=False  # Needs employer approval
+                    approved=True  # Automatically approved
                 )
                 
                 # Create home location (without coordinates)
@@ -119,9 +99,8 @@ def employee_register(request):
                     location_type='home'
                 )
                 
-                messages.success(request, "Registration successful! Your account is pending approval from your employer.")
-                request.session['registration_type'] = 'employee'
-                return redirect('pending_approval')
+                messages.success(request, "Registration successful! You can now log in.")
+                return redirect('login')
                 
             except Exception as e:
                 messages.error(request, f"An error occurred during registration: {str(e)}")

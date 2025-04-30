@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,6 +14,10 @@ from .serializers import (
 )
 # Import permissions
 from .permissions import IsEmployer, IsBankAdmin, IsSuperAdmin, IsEmployee, IsOwnerOrAdmin, IsApprovedUser
+from django.contrib import messages
+from django.contrib.auth import login
+from .forms import EmployeeRegistrationForm
+import decimal
 
 
 class CurrentUserView(APIView):
@@ -41,62 +45,67 @@ class EmployerRegistrationView(APIView):
     """View to register a new employer."""
     
     permission_classes = [permissions.AllowAny]
+    template_name = 'registration/employer_registration.html'
     
     def get(self, request):
         """Handle GET request - display the registration form."""
-        return render(request, 'auth/register_employer.html')
+        serializer = EmployerRegistrationSerializer()
+        # Initialize an empty errors dict to avoid template errors
+        serializer._errors = {}
+        return render(request, self.template_name, {
+            'serializer': serializer,
+            'page_title': 'Employer Registration',
+            'page_description': 'Register your company to manage employee carbon credits'
+        })
     
     def post(self, request):
+        """Handle POST request - process the registration form."""
         serializer = EmployerRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
                 # Get validated data
                 email = serializer.validated_data.get('email')
-                username = serializer.validated_data.get('username')
                 password = serializer.validated_data.get('password')
-                first_name = serializer.validated_data.get('first_name')
-                last_name = serializer.validated_data.get('last_name')
                 company_name = serializer.validated_data.get('company_name')
-                registration_number = serializer.validated_data.get('registration_number')
-                industry = serializer.validated_data.get('industry')
                 
-                # Check if user already exists
-                if CustomUser.objects.filter(email=email).exists():
-                    return Response(
-                        {"email": ["A user with this email already exists."]},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                
-                # Create user (inactive until approved)
+                # Create user with automatic approval
                 user = CustomUser.objects.create_user(
-                    username=username,
+                    username=email,  # Use email as username
                     email=email,
                     password=password,
-                    first_name=first_name,
-                    last_name=last_name,
                     is_employer=True,
-                    is_active=True,  # User can login but cannot access restricted areas
-                    approved=False  # User is not fully approved
+                    is_active=True,
+                    approved=True  # Automatically approve employer
                 )
                 
-                # Create employer profile (pending approval)
+                # Create employer profile with automatic approval
                 employer_profile = EmployerProfile.objects.create(
                     user=user,
                     company_name=company_name,
-                    registration_number=registration_number,
-                    industry=industry,
-                    approved=False  # Needs admin approval
+                    approved=True  # Automatically approve employer profile
                 )
                 
-                # Return success response with redirect
+                # Log the user in
+                login(request, user)
+                
+                if request.accepts('text/html'):
+                    messages.success(request, 'Registration successful! Welcome to the Carbon Credits platform.')
+                    return redirect('employer:employer_dashboard')
+                
                 return Response(
                     {
-                        "detail": "Employer registration successful. Awaiting approval from the administrator.",
-                        "redirect_url": "/registration/pending-approval/",
+                        "detail": "Employer registration successful.",
                         "user_id": user.id
                     },
                     status=status.HTTP_201_CREATED
                 )
+        
+        if request.accepts('text/html'):
+            return render(request, self.template_name, {
+                'serializer': serializer,
+                'page_title': 'Employer Registration',
+                'page_description': 'Register your company to manage employee carbon credits'
+            })
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -108,21 +117,23 @@ class EmployeeRegistrationView(APIView):
     
     def get(self, request):
         """Handle GET request - display the registration form."""
-        employers = EmployerProfile.objects.filter(approved=True)
-        return render(request, 'auth/register_employee.html', {'employers': employers})
+        form = EmployeeRegistrationForm()
+        return render(request, 'auth/register_employee.html', {'form': form})
     
     def post(self, request):
-        serializer = EmployeeRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
+        """Handle POST request - process the registration form."""
+        form = EmployeeRegistrationForm(request.POST)
+        if form.is_valid():
             with transaction.atomic():
-                # Get validated data
-                email = serializer.validated_data.get('email')
-                username = serializer.validated_data.get('username')
-                password = serializer.validated_data.get('password')
-                first_name = serializer.validated_data.get('first_name')
-                last_name = serializer.validated_data.get('last_name')
-                employer_id = serializer.validated_data.get('employer_id')
-                employee_id = serializer.validated_data.get('employee_id', '')
+                # Get form data
+                email = form.cleaned_data['email']
+                username = form.cleaned_data['username']
+                password = form.cleaned_data['password']
+                first_name = form.cleaned_data['first_name']
+                last_name = form.cleaned_data['last_name']
+                employer = form.cleaned_data['employer']
+                employee_id = form.cleaned_data['employee_id']
+                home_address = form.cleaned_data['home_address']
                 
                 # Check if user already exists
                 existing_user = CustomUser.objects.filter(email=email).first()
@@ -130,17 +141,13 @@ class EmployeeRegistrationView(APIView):
                     # If the user exists but has no employee profile, they might be registering as an employee
                     if hasattr(existing_user, 'employee_profile'):
                         # User is already registered as an employee
-                        return Response(
-                            {"email": ["A user with this email is already registered as an employee."]},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
+                        form.add_error('email', 'A user with this email is already registered as an employee.')
+                        return render(request, 'auth/register_employee.html', {'form': form})
                     
                     # If user is an employer or admin, they can't register as an employee
                     if existing_user.is_employer or existing_user.is_bank_admin or existing_user.is_super_admin:
-                        return Response(
-                            {"email": ["This email is already registered as an employer or administrator."]},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
+                        form.add_error('email', 'This email is already registered as an employer or administrator.')
+                        return render(request, 'auth/register_employee.html', {'form': form})
                     
                     # For other cases (e.g., user exists but no role), we update the user instead of creating a new one
                     user = existing_user
@@ -167,15 +174,6 @@ class EmployeeRegistrationView(APIView):
                         approved=False  # User is not fully approved
                     )
                 
-                # Get employer
-                try:
-                    employer = EmployerProfile.objects.get(id=employer_id)
-                except EmployerProfile.DoesNotExist:
-                    return Response(
-                        {"employer_id": ["Employer does not exist"]},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                
                 # Check if employee profile already exists
                 employee_profile = EmployeeProfile.objects.filter(user=user).first()
                 if not employee_profile:
@@ -193,17 +191,23 @@ class EmployeeRegistrationView(APIView):
                     employee_profile.approved = False
                     employee_profile.save()
                 
-                # Return success response with redirect
-                return Response(
-                    {
-                        "detail": "Employee registration successful. Awaiting approval from your employer.",
-                        "redirect_url": "/registration/pending-approval/",
-                        "user_id": user.id
-                    },
-                    status=status.HTTP_201_CREATED
+                # Create home location
+                Location.objects.create(
+                    created_by=user,
+                    name="Home",
+                    latitude=decimal.Decimal('0.0'),
+                    longitude=decimal.Decimal('0.0'),
+                    address=home_address,
+                    location_type='home',
+                    is_primary=True
                 )
+                
+                # Set registration type and redirect to pending approval page
+                request.session['registration_type'] = 'employee'
+                messages.success(request, "Registration successful! Your account is pending approval from your employer.")
+                return redirect('pending_approval')
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return render(request, 'auth/register_employee.html', {'form': form})
 
 
 class EmployerListView(generics.ListAPIView):

@@ -82,239 +82,97 @@ def create_trip(request):
     
     try:
         # Get form data
-        start_location_id = request.POST.get('start_location')
-        end_location_id = request.POST.get('end_location')
-        transport_mode = request.POST.get('transport_mode')
-        trip_date_str = request.POST.get('trip_date')
+        start_address = request.POST.get('start_address')
+        start_latitude = request.POST.get('start_latitude')
+        start_longitude = request.POST.get('start_longitude')
+        end_address = request.POST.get('end_address')
+        end_latitude = request.POST.get('end_latitude')
+        end_longitude = request.POST.get('end_longitude')
+        transport_mode = request.POST.get('transport_type')
+        trip_date_str = request.POST.get('date')
+        distance_km = request.POST.get('distance')
+        notes = request.POST.get('notes', '')
         
         # Validate required fields
-        if not all([start_location_id, end_location_id, transport_mode, trip_date_str]):
+        if not all([start_address, start_latitude, start_longitude, end_address, end_latitude, end_longitude, 
+                   transport_mode, trip_date_str, distance_km]):
             messages.error(request, "Please fill in all required fields.")
             return redirect('employee_trip_log')
         
         # Get employee profile
         employee = request.user.employee_profile
         
-        # Handle custom locations (marked as 'other' in dropdown)
-        start_location = None
-        end_location = None
-        distance_km = None
-        
-        # Process start location
-        if start_location_id == 'home':
-            # Use employee's home location
-            start_location = Location.objects.filter(
-                created_by=request.user,
-                location_type='home'
-            ).first()
-            
-            if not start_location:
-                messages.error(request, "Home location not found. Please set your home location first.")
-                return redirect('employee_trip_log')
-        elif start_location_id == 'other':
-            # Create a custom location for this trip
-            lat = request.POST.get('custom_latitude')
-            lng = request.POST.get('custom_longitude')
-            address = request.POST.get('custom_address', 'Custom location')
-            
-            if not lat or not lng:
-                messages.error(request, "Custom location coordinates are required.")
-                return redirect('employee_trip_log')
-            
-            # Create a temporary location (not saved to database)
-            start_location = Location(
-                name=f"Custom Start {timezone.now().strftime('%Y-%m-%d %H:%M')}",
-                latitude=Decimal(lat),
-                longitude=Decimal(lng),
-                address=address,
-                location_type='custom',
-                created_by=request.user
-            )
-            start_location.save()
-        else:
-            # Use an existing location from database
-            try:
-                start_location = Location.objects.get(id=start_location_id)
-            except Location.DoesNotExist:
-                messages.error(request, "Selected start location does not exist.")
-                return redirect('employee_trip_log')
-        
-        # Process end location
-        if end_location_id == 'home':
-            # Use employee's home location
-            end_location = Location.objects.filter(
-                created_by=request.user,
-                location_type='home'
-            ).first()
-            
-            if not end_location:
-                messages.error(request, "Home location not found. Please set your home location first.")
-                return redirect('employee_trip_log')
-        elif end_location_id == 'other':
-            # Create a custom location for this trip
-            lat = request.POST.get('custom_latitude')
-            lng = request.POST.get('custom_longitude')
-            address = request.POST.get('custom_address', 'Custom location')
-            
-            if not lat or not lng:
-                messages.error(request, "Custom location coordinates are required.")
-                return redirect('employee_trip_log')
-            
-            # Create a temporary location (not saved to database)
-            end_location = Location(
-                name=f"Custom End {timezone.now().strftime('%Y-%m-%d %H:%M')}",
-                latitude=Decimal(lat),
-                longitude=Decimal(lng),
-                address=address,
-                location_type='custom',
-                created_by=request.user
-            )
-            end_location.save()
-        else:
-            # Use an existing location from database
-            try:
-                end_location = Location.objects.get(id=end_location_id)
-            except Location.DoesNotExist:
-                messages.error(request, "Selected end location does not exist.")
-                return redirect('employee_trip_log')
-        
-        # Get distance
-        # distance_km = request.POST.get('distance_km')
-        distance_km = get_distance(
-            (start_location.latitude, start_location.longitude),
-            (end_location.latitude, end_location.longitude),
+        # Create start location
+        start_location = Location.objects.create(
+            name=f"Start Location - {trip_date_str}",
+            address=start_address,
+            latitude=Decimal(start_latitude),
+            longitude=Decimal(start_longitude),
+            location_type='trip_start',
+            created_by=request.user
         )
-
-        if not distance_km and transport_mode != 'work_from_home':
-            messages.error(request, "Trip distance is required.")
-            return redirect('employee_trip_log')
         
-        # For work from home, set distance to 0
+        # Create end location
+        end_location = Location.objects.create(
+            name=f"End Location - {trip_date_str}",
+            address=end_address,
+            latitude=Decimal(end_latitude),
+            longitude=Decimal(end_longitude),
+            location_type='trip_end',
+            created_by=request.user
+        )
+        
+        # Parse date
+        trip_date = datetime.strptime(trip_date_str, "%Y-%m-d").date()
+        trip_datetime = timezone.make_aware(datetime.combine(trip_date, datetime.min.time()))
+        
+        # Calculate credits based on transport mode and distance
+        distance_km = Decimal(distance_km)
         if transport_mode == 'work_from_home':
-            distance_km = 0
-        
-        # Create the trip with start time only (this means trip is in progress)
-        distance_decimal = Decimal(distance_km) if distance_km else Decimal('0')
-        
-        # Parse trip date
-        trip_date = datetime.strptime(trip_date_str, "%Y-%m-%d").date()
-        
-        # Set trip time to current time, but with the selected date
-        trip_start = timezone.now().replace(
-            year=trip_date.year,
-            month=trip_date.month,
-            day=trip_date.day
-        )
-        
-        # For completed trips, set end time 30 minutes later
-        trip_end = trip_start + timezone.timedelta(minutes=30)
+            credits_earned = Decimal('10')  # Fixed credits for WFH
+            carbon_savings = Decimal('10')  # Fixed carbon savings for WFH
+        else:
+            mode_factors = {
+                'walking': Decimal('6'),
+                'bicycle': Decimal('5'),
+                'public_transport': Decimal('3'),
+                'carpool': Decimal('2'),
+                'car': Decimal('0.5')
+            }
+            factor = mode_factors.get(transport_mode, Decimal('1'))
+            credits_earned = distance_km * factor
+            carbon_savings = distance_km * factor  # Using same factor for carbon savings
         
         # Create the trip
-        trip = Trip(
+        trip = Trip.objects.create(
             employee=employee,
             start_location=start_location,
             end_location=end_location,
-            start_time=trip_start,
-            end_time=trip_end,
+            start_time=trip_datetime,
+            end_time=trip_datetime,
             transport_mode=transport_mode,
-            distance_km=distance_decimal,
-            # status='completed'
+            distance_km=distance_km,
+            carbon_savings=carbon_savings,
+            credits_earned=credits_earned,
+            notes=notes
         )
         
-        # Calculate carbon savings based on transport mode and distance
-        carbon_savings = 0
-        
-        if transport_mode == 'work_from_home':
-            # Fixed carbon savings for WFH
-            carbon_savings = 10
-        else:
-            # Calculate based on mode and distance
-            mode_factors = {
-                'walking': 6,
-                'bicycle': 5,
-                'public_transport': 3,
-                'carpool': 2,
-                'car': 0.5
-            }
-            factor = mode_factors.get(transport_mode, 1)
-            carbon_savings = float(distance_decimal) * factor
-        
-        # Save carbon savings as Decimal
-        trip.carbon_savings = Decimal(str(carbon_savings))
-        trip.credits_earned = Decimal(str(carbon_savings))
-        
-        # Handle trip proof
-        proof_image = request.FILES.get('proof_image')
-        proof_data = request.POST.get('proof_image')
-        proof_file_path = request.POST.get('proof_file_path')
-        
-        if proof_image:
-            # Handle traditional file upload
-            # Generate a unique filename
-            filename = f"{uuid.uuid4()}.{proof_image.name.split('.')[-1]}"
-            
-            # Save the proof image
-            trip.proof_image = proof_image
-            trip.verification_status = 'pending'
-        elif proof_data and proof_data.startswith('data:'):
-            # Handle base64 data from the enhanced file upload component
-            import base64
-            from django.core.files.base import ContentFile
-            
-            # Extract the data type and base64 content
-            format, imgstr = proof_data.split(';base64,')
-            ext = format.split('/')[-1]
-            
-            # Use the provided path or generate a unique filename
-            if proof_file_path:
-                filename = os.path.basename(proof_file_path)
-            else:
-                filename = f"{uuid.uuid4()}.{ext}"
-            
-            # Convert base64 to file and save
-            data = ContentFile(base64.b64decode(imgstr), name=filename)
-            trip.proof_image = data
-            trip.verification_status = 'pending'
-            
-            # Log the file path for debugging
-            print(f"Saved proof image to: {trip.proof_image.path}")
-        else:
-            # All trips require employer approval
-            trip.verification_status = 'pending'
-        
-        # Save the trip
-        trip.save()
-        
         # Create carbon credits
-        if trip.verification_status == 'verified':
-            # Create active credits for verified trips
+        if credits_earned > 0:
             CarbonCredit.objects.create(
-                amount=trip.credits_earned,
-                source_trip=trip,
-                owner_type='employee',
-                owner_id=employee.id,
-                status='active',
-                expiry_date=timezone.now() + timezone.timedelta(days=365)
-            )
-        else:
-            # Create pending credits for trips needing verification
-            CarbonCredit.objects.create(
-                amount=trip.credits_earned,
+                amount=credits_earned,
                 source_trip=trip,
                 owner_type='employee',
                 owner_id=employee.id,
                 status='pending',
-                expiry_date=timezone.now() + timezone.timedelta(days=365)
+                expiry_date=timezone.now() + timedelta(days=365)  # 1 year validity
             )
         
-        messages.success(
-            request, 
-            f"Trip logged successfully! You've earned {trip.credits_earned} carbon credits."
-        )
-        return redirect('employee_dashboard')
+        messages.success(request, "Trip recorded successfully!")
+        return redirect('employee_trips')
         
     except Exception as e:
-        messages.error(request, f"Error creating trip: {str(e)}")
+        messages.error(request, f"An error occurred while recording the trip: {str(e)}")
         return redirect('employee_trip_log')
 
 # For GET requests, redirect to the trip_log page

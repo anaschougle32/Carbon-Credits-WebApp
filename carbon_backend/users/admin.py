@@ -44,9 +44,9 @@ class CustomUserAdmin(UserAdmin):
 class EmployerProfileAdmin(admin.ModelAdmin):
     """Admin configuration for the EmployerProfile model."""
     
-    list_display = ['company_name', 'user', 'registration_number', 'industry', 'approved', 'created_at']
-    list_filter = ['approved', 'industry']
-    search_fields = ['company_name', 'registration_number', 'user__email']
+    list_display = ['company_name', 'user', 'approved', 'created_at', 'wallet_balance']
+    list_filter = ['approved']
+    search_fields = ['company_name', 'user__email']
     readonly_fields = ['created_at']
     actions = ['approve_employers', 'reject_employers']
     

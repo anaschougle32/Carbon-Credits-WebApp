@@ -16,11 +16,11 @@ class CustomUser(AbstractUser):
     # Additional fields
     email = models.EmailField(_('email address'), unique=True)
     date_joined = models.DateTimeField(default=timezone.now)
-    approved = models.BooleanField(default=False)
+    approved = models.BooleanField(default=True)
     
     # Use email as the username field
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+    REQUIRED_FIELDS = ['username']
     
     class Meta:
         verbose_name = _('user')
@@ -77,9 +77,7 @@ class EmployerProfile(models.Model):
         related_name='employer_profile'
     )
     company_name = models.CharField(max_length=100)
-    registration_number = models.CharField(max_length=50, unique=True)
-    industry = models.CharField(max_length=100)
-    approved = models.BooleanField(default=False)
+    approved = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
     initial_credits_allocated = models.BooleanField(default=False)
     wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -102,7 +100,7 @@ class EmployeeProfile(models.Model):
         related_name='employees'
     )
     employee_id = models.CharField(max_length=50, blank=True, null=True)
-    approved = models.BooleanField(default=False)
+    approved = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
     wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     department = models.CharField(max_length=100, blank=True)

@@ -40,8 +40,8 @@ class EmployerProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = EmployerProfile
-        fields = ['id', 'user', 'company_name', 'registration_number', 
-                  'industry', 'approved', 'created_at', 'office_locations']
+        fields = ['id', 'user', 'company_name', 'approved', 'created_at', 
+                  'office_locations', 'wallet_balance', 'initial_credits_allocated']
         read_only_fields = ['id', 'user', 'approved', 'created_at']
 
 
@@ -60,35 +60,24 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
 class EmployerRegistrationSerializer(serializers.Serializer):
     """Serializer for employer registration."""
     
-    # User fields
-    email = serializers.EmailField()
-    username = serializers.CharField(max_length=150)
-    password = serializers.CharField(min_length=8, write_only=True)
-    first_name = serializers.CharField(max_length=150)
-    last_name = serializers.CharField(max_length=150)
+    # Account Credentials
+    email = serializers.EmailField(label='Username')  # Using email as username
+    password = serializers.CharField(min_length=8, write_only=True, style={'input_type': 'password'})
+    confirm_password = serializers.CharField(min_length=8, write_only=True, style={'input_type': 'password'})
     
-    # Employer profile fields
+    # Company Information
     company_name = serializers.CharField(max_length=100)
-    registration_number = serializers.CharField(max_length=50)
-    industry = serializers.CharField(max_length=100)
 
-    def validate_username(self, value):
-        """Validate that the username is not already taken."""
-        # Check if user exists with this username
-        existing_user = CustomUser.objects.filter(username=value).first()
-        if existing_user:
-            # Allow updating own username (for existing users)
-            email = self.initial_data.get('email')
-            if email and existing_user.email == email:
-                return value
-            raise serializers.ValidationError("This username is already taken.")
-        return value
-    
-    def validate_registration_number(self, value):
-        """Validate that the registration number is not already taken."""
-        existing_employer = EmployerProfile.objects.filter(registration_number=value).first()
-        if existing_employer:
-            raise serializers.ValidationError("This registration number is already registered.")
+    def validate(self, data):
+        """Validate that passwords match."""
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": ["Passwords do not match."]})
+        return data
+
+    def validate_email(self, value):
+        """Validate that the email is not already taken."""
+        if CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
         return value
 
 

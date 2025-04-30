@@ -1,0 +1,113 @@
+{% extends 'admin/partials/admin_base.html' %}
+{% load static %}
+
+{% block page_title %}Approvals{% endblock %}
+{% block page_description %}Review and manage pending approvals{% endblock %}
+
+{% block admin_content %}
+<div class="bg-white shadow rounded-lg overflow-hidden mb-6">
+    <div class="p-6 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-800">Pending Approvals</h2>
+    </div>
+    
+    <div class="p-6">
+        <div class="flex flex-col space-y-4">
+            <div class="flex justify-between">
+                <div class="flex space-x-4">
+                    <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">All</button>
+                    <button class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Trip Claims</button>
+                    <button class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Credit Transfers</button>
+                    <button class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">New Employers</button>
+                </div>
+                <div>
+                    <input type="text" placeholder="Search approvals..." class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requester</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for approval in approvals %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">#{{ approval.id }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if approval.type == 'Trip Claim' %}bg-blue-100 text-blue-800
+                            {% elif approval.type == 'Credit Transfer' %}bg-purple-100 text-purple-800
+                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ approval.type }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                                {{ approval.requester.name|slice:":1" }}
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">{{ approval.requester.name }}</div>
+                                <div class="text-sm text-gray-500">{{ approval.requester.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ approval.date }}</div>
+                        <div class="text-sm text-gray-500">{{ approval.time }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            Pending
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button class="text-green-600 hover:text-green-900 mr-3">Approve</button>
+                        <button class="text-red-600 hover:text-red-900 mr-3">Reject</button>
+                        <button class="text-indigo-600 hover:text-indigo-900">Details</button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                        No pending approvals at this time.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+        <div class="flex items-center justify-between">
+            <div class="text-sm text-gray-500">
+                Showing <span class="font-medium">1</span> to <span class="font-medium">10</span> of <span class="font-medium">{{ approvals|length }}</span> approvals
+            </div>
+            <div class="flex-1 flex justify-end">
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        Previous
+                    </a>
+                    <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        1
+                    </a>
+                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        Next
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

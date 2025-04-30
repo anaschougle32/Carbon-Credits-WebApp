@@ -1,53 +1,142 @@
 <nav class="sidebar bg-light">
     <div class="pt-3">
-        <h5 class="sidebar-heading px-3 mt-4 mb-1 text-muted">
-            <span>Employee Menu</span>
-        </h5>
+        <!-- User Profile Section at Top -->
+        <div class="px-3 mb-4 d-flex align-items-center">
+            <div class="user-profile-section">
+                {% if user.employee %}
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle me-2">
+                            {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                        </div>
+                        <div>
+                            <div class="fw-bold">{{ user.get_full_name }}</div>
+                            <small class="text-muted">Employee</small>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Main Navigation -->
         <ul class="nav flex-column">
             <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employee/dashboard/' %}active{% endif %}" href="{% url 'employee_dashboard' %}">
-                    <i class="bi bi-speedometer2 me-2"></i>
+                <a class="nav-link {% if request.path == '/employee/dashboard/' %}active{% endif %}" href="{% url 'employee:dashboard' %}">
+                    <i class="bi bi-house-door me-2"></i>
                     Dashboard
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employee/trips/log/' %}active{% endif %}" href="{% url 'employee_trip_log' %}">
-                    <i class="bi bi-plus-circle me-2"></i>
-                    Log Trip
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employee/trips/' %}active{% endif %}" href="{% url 'employee_trips' %}">
-                    <i class="bi bi-list-check me-2"></i>
-                    My Trips
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employee/marketplace/' %}active{% endif %}" href="{% url 'employee_marketplace' %}">
-                    <i class="bi bi-currency-exchange me-2"></i>
-                    Marketplace
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.path == '/employee/profile/' %}active{% endif %}" href="{% url 'employee_profile' %}">
-                    <i class="bi bi-person-circle me-2"></i>
-                    Profile
-                </a>
-            </li>
-        </ul>
 
-        <h5 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-            <span>Settings</span>
-        </h5>
-        <ul class="nav flex-column mb-2">
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'logout' %}">
-                    <i class="bi bi-box-arrow-right me-2"></i>
-                    Sign Out
-                </a>
+            <!-- Locations & Trips Section -->
+            <li class="nav-section mt-4">
+                <small class="px-3 text-muted text-uppercase fw-bold d-block mb-2">Locations & Trips</small>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/employee/manage-home-location/' %}active{% endif %}" href="{% url 'employee_manage_home_location' %}">
+                            <i class="bi bi-geo-alt me-2"></i>
+                            Home Location
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/employee/trips/log/' %}active{% endif %}" href="{% url 'employee_trip_log' %}">
+                            <i class="bi bi-plus-circle me-2"></i>
+                            Record Trip
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/employee/trips/' %}active{% endif %}" href="{% url 'employee_trips' %}">
+                            <i class="bi bi-clock-history me-2"></i>
+                            Trip History
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- Carbon Credits Section -->
+            <li class="nav-section mt-4">
+                <small class="px-3 text-muted text-uppercase fw-bold d-block mb-2">Carbon Credits</small>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/employee/carbon-credits/' %}active{% endif %}" href="{% url 'employee_carbon_credits' %}">
+                            <i class="bi bi-leaf me-2"></i>
+                            My Credits
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/employee/marketplace/' %}active{% endif %}" href="{% url 'employee_marketplace' %}">
+                            <i class="bi bi-shop me-2"></i>
+                            Marketplace
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- Account Section -->
+            <li class="nav-section mt-4">
+                <small class="px-3 text-muted text-uppercase fw-bold d-block mb-2">Account</small>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/employee/profile/' %}active{% endif %}" href="{% url 'employee_profile' %}">
+                            <i class="bi bi-person me-2"></i>
+                            Profile Settings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            Sign Out
+                        </a>
+                    </li>
+                </ul>
             </li>
         </ul>
     </div>
-</nav> 
+</nav>
+
+<style>
+.sidebar {
+    width: 280px;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    border-right: 1px solid rgba(0,0,0,.1);
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    background-color: #6c757d;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.nav-link {
+    color: #495057;
+    padding: .5rem 1rem;
+    border-radius: .25rem;
+    margin: 0 .5rem;
+}
+
+.nav-link:hover {
+    background-color: rgba(0,0,0,.05);
+}
+
+.nav-link.active {
+    background-color: #e9ecef;
+    color: #2470dc;
+}
+
+.nav-section {
+    margin-bottom: 1rem;
+}
+
+.bi {
+    font-size: 1.1rem;
+}
+</style>
  
  

@@ -1,81 +1,131 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{% block title_page %}{% endblock %} - Bank Admin{% endblock %}
+{% block show_header %}{% endblock %}
+{% block show_footer %}{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Layout */
     .bank-layout {
         display: flex;
         min-height: 100vh;
-        background-color: #F3F4F6;
     }
 
-    /* Sidebar */
     .bank-sidebar {
         width: 280px;
-        background-color: #1E293B;
-        color: #E2E8F0;
+        background: white;
+        border-right: 1px solid #e5e7eb;
+        padding: 1.5rem;
         position: fixed;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        z-index: 40;
-        transition: all 0.3s;
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+    .bank-main {
+        flex: 1;
+        margin-left: 280px;
+        padding: 2rem;
+        background: #f9fafb;
     }
 
     .sidebar-header {
-        padding: 1.5rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .sidebar-logo {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .sidebar-logo svg {
+        width: 24px;
+        height: 24px;
+        color: white;
     }
 
     .sidebar-nav {
-        padding: 1rem 0;
-    }
-
-    .nav-group {
-        padding: 0.5rem 0;
-    }
-
-    .nav-group-title {
-        padding: 0.5rem 1.5rem;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        color: #94A3B8;
-        letter-spacing: 0.05em;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
     }
 
     .nav-item {
         display: flex;
         align-items: center;
-        padding: 0.75rem 1.5rem;
-        color: #E2E8F0;
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        color: #4b5563;
         text-decoration: none;
         transition: all 0.2s;
     }
 
     .nav-item:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        background: #f3f4f6;
+        color: #059669;
     }
 
     .nav-item.active {
-        background-color: #2563EB;
-        color: white;
+        background: #ecfdf5;
+        color: #059669;
     }
 
     .nav-item svg {
-        width: 1.25rem;
-        height: 1.25rem;
+        width: 20px;
+        height: 20px;
         margin-right: 0.75rem;
     }
 
-    /* Main Content */
-    .bank-main {
+    .nav-item span {
+        font-weight: 500;
+    }
+
+    .sidebar-footer {
+        margin-top: auto;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        background: #f3f4f6;
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #059669;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        margin-right: 0.75rem;
+    }
+
+    .user-info {
         flex: 1;
-        margin-left: 280px;
-        padding: 2rem;
+    }
+
+    .user-name {
+        font-weight: 500;
+        color: #111827;
+    }
+
+    .user-role {
+        font-size: 0.875rem;
+        color: #6b7280;
     }
 
     .page-header {
@@ -86,83 +136,18 @@
         font-size: 1.875rem;
         font-weight: 700;
         color: #111827;
+        margin-bottom: 0.5rem;
     }
 
     .page-description {
-        margin-top: 0.5rem;
-        color: #6B7280;
+        color: #6b7280;
     }
 
-    /* Quick Stats */
-    .quick-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .stat-card {
-        background-color: white;
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .stat-title {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #6B7280;
-    }
-
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #111827;
-        margin-top: 0.5rem;
-    }
-
-    .stat-change {
-        display: inline-flex;
-        align-items: center;
-        font-size: 0.875rem;
-        margin-top: 0.5rem;
-    }
-
-    .stat-change.positive {
-        color: #059669;
-    }
-
-    .stat-change.negative {
-        color: #DC2626;
-    }
-
-    /* User Profile */
-    .user-profile {
-        display: flex;
-        align-items: center;
-        padding: 1rem 1.5rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        margin-top: auto;
-    }
-
-    .profile-info {
-        margin-left: 0.75rem;
-    }
-
-    .profile-name {
-        font-weight: 600;
-        color: white;
-    }
-
-    .profile-role {
-        font-size: 0.75rem;
-        color: #94A3B8;
-    }
-
-    /* Responsive */
     @media (max-width: 1024px) {
         .bank-sidebar {
             transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 50;
         }
 
         .bank-sidebar.open {
@@ -173,76 +158,9 @@
             margin-left: 0;
         }
 
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 30;
-        }
-
-        .sidebar-overlay.show {
+        .sidebar-toggle {
             display: block;
         }
-    }
-
-    /* Notifications */
-    .notification-badge {
-        background-color: #EF4444;
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 0.25rem 0.5rem;
-        border-radius: 9999px;
-        margin-left: auto;
-    }
-
-    /* Actions Bar */
-    .actions-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-
-    .action-buttons {
-        display: flex;
-        gap: 0.75rem;
-    }
-
-    .action-button {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.5rem 1rem;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        transition: all 0.2s;
-    }
-
-    .action-button.primary {
-        background-color: #2563EB;
-        color: white;
-    }
-
-    .action-button.primary:hover {
-        background-color: #1D4ED8;
-    }
-
-    .action-button.secondary {
-        background-color: white;
-        color: #374151;
-        border: 1px solid #D1D5DB;
-    }
-
-    .action-button.secondary:hover {
-        background-color: #F9FAFB;
-    }
-
-    .action-button svg {
-        width: 1rem;
-        height: 1rem;
-        margin-right: 0.5rem;
     }
 </style>
 {% endblock %}
@@ -252,136 +170,102 @@
     <!-- Sidebar -->
     <aside class="bank-sidebar">
         <div class="sidebar-header">
-            <img src="{% static 'img/logo.png' %}" alt="Bank Logo" class="h-8">
+            <div class="sidebar-logo">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+            <h2 class="text-xl font-bold text-gray-800">Bank Panel</h2>
         </div>
 
         <nav class="sidebar-nav">
-            <div class="nav-group">
-                <div class="nav-group-title">Overview</div>
-                <a href="{% url 'bank:bank_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_dashboard' %}active{% endif %}">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                    Dashboard
-                </a>
-            </div>
+            <a href="{% url 'bank:bank_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_dashboard' %}active{% endif %}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span>Dashboard</span>
+            </a>
 
-            <div class="nav-group">
-                <div class="nav-group-title">Management</div>
-                <a href="{% url 'bank:bank_employers' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_employers' %}active{% endif %}">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    Employers
-                </a>
-                <a href="{% url 'bank:bank_approvals' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_approvals' %}active{% endif %}">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Approvals
-                    {% if pending_approvals_count %}
-                    <span class="notification-badge">{{ pending_approvals_count }}</span>
-                    {% endif %}
-                </a>
-            </div>
+            <a href="{% url 'bank:bank_employers' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_employers' %}active{% endif %}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                <span>Employers</span>
+            </a>
 
-            <div class="nav-group">
-                <div class="nav-group-title">Trading</div>
-                <a href="{% url 'bank:bank_trading' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_trading' %}active{% endif %}">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Market Overview
-                </a>
-                <a href="{% url 'bank:bank_reports' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_reports' %}active{% endif %}">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Reports
-                </a>
-                </div>
+            <a href="{% url 'bank:bank_approvals' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_approvals' %}active{% endif %}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Approvals</span>
+            </a>
 
-            <div class="nav-group">
-                <div class="nav-group-title">Settings</div>
-                <a href="{% url 'bank:profile' %}" class="nav-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Settings
-                </a>
-            </div>
+            <a href="{% url 'bank:bank_reports' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_reports' %}active{% endif %}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Reports</span>
+            </a>
         </nav>
 
-        <div class="user-profile">
-            <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
-                <span class="text-lg font-medium text-white">{{ request.user.first_name|first }}{{ request.user.last_name|first }}</span>
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="user-avatar">
+                    {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
                 </div>
-            <div class="profile-info">
-                <div class="profile-name">{{ request.user.get_full_name }}</div>
-                <div class="profile-role">Bank Administrator</div>
+                <div class="user-info">
+                    <div class="user-name">{{ request.user.get_full_name }}</div>
+                    <div class="user-role">Bank Administrator</div>
+                </div>
             </div>
+            <a href="{% url 'logout' %}" class="nav-item mt-4 text-red-600 hover:bg-red-50">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>Logout</span>
+            </a>
         </div>
     </aside>
-
-    <!-- Mobile Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
     <!-- Main Content -->
     <main class="bank-main">
         <div class="page-header">
             <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
             <p class="page-description">{% block page_description %}{% endblock %}</p>
-            </div>
-            
-            {% if messages %}
-        <div class="mb-6">
-                {% for message in messages %}
-            <div class="p-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
-                    {{ message }}
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            
+        </div>
+
         {% block bank_content %}{% endblock %}
-        </main>
+    </main>
 </div>
-
-{% block modal %}{% endblock %}
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
     // Mobile sidebar toggle
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    const sidebar = document.querySelector('.bank-sidebar');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.querySelector('.bank-sidebar');
+        const toggleButton = document.createElement('button');
+        toggleButton.className = 'sidebar-toggle fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg lg:hidden';
+        toggleButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        `;
+        document.body.appendChild(toggleButton);
 
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', toggleSidebar);
-    }
+        toggleButton.addEventListener('click', function() {
+            sidebar.classList.toggle('open');
+        });
 
-    if (sidebarOverlay) {
-        sidebarOverlay.addEventListener('click', closeSidebar);
-    }
-
-    function toggleSidebar() {
-        sidebar.classList.toggle('open');
-        sidebarOverlay.classList.toggle('show');
-    }
-
-    function closeSidebar() {
-        sidebar.classList.remove('open');
-        sidebarOverlay.classList.remove('show');
-    }
-
-    // Close sidebar on window resize if in mobile view
-    window.addEventListener('resize', () => {
-        if (window.innerWidth >= 1024) {
-            closeSidebar();
-        }
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            if (window.innerWidth < 1024 && 
+                !sidebar.contains(event.target) && 
+                !toggleButton.contains(event.target) && 
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
     });
 </script>
-{% endblock %} 
+{% endblock %}

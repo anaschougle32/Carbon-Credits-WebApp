@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from users.models import CustomUser, EmployeeProfile, Location
+from decimal import Decimal
 
 
 class Trip(models.Model):
@@ -39,8 +40,9 @@ class Trip(models.Model):
         related_name='trip_ends',
         null=True
     )
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField(null=True, blank=True)
+    trip_date = models.DateField(default=timezone.now)
+    start_time = models.TimeField(default=timezone.now)
+    end_time = models.TimeField(default=timezone.now)
     transport_mode = models.CharField(
         max_length=20, 
         choices=TRANSPORT_MODES
@@ -63,11 +65,7 @@ class Trip(models.Model):
         null=True,
         blank=True
     )
-    proof_image = models.ImageField(
-        upload_to='trip_proofs/',
-        null=True,
-        blank=True
-    )
+    notes = models.TextField(blank=True)
     verification_status = models.CharField(
         max_length=10,
         choices=VERIFICATION_STATUS,
@@ -80,22 +78,26 @@ class Trip(models.Model):
         null=True,
         blank=True
     )
-    duration_minutes = models.PositiveIntegerField(
-        null=True,
-        blank=True,
-        help_text="Estimated travel time in minutes based on transport mode and distance"
-    )
     created_at = models.DateTimeField(default=timezone.now)
     
     def __str__(self):
-        return f"{self.employee.user.email}: {self.start_time} ({self.transport_mode})"
+        return f"{self.employee.user.email}: {self.trip_date} ({self.transport_mode})"
     
-    @property
-    def duration(self):
-        """Calculate the duration of the trip."""
-        if self.end_time and self.start_time:
-            return self.end_time - self.start_time
-        return None
+    def calculate_credits(self):
+        """Calculate carbon credits based on transport mode and distance."""
+        if self.transport_mode == 'work_from_home':
+            return Decimal('10')  # Fixed credits for WFH
+            
+        mode_factors = {
+            'walking': Decimal('6'),
+            'bicycle': Decimal('5'),
+            'public_transport': Decimal('3'),
+            'carpool': Decimal('2'),
+            'car': Decimal('0.5')
+        }
+        
+        factor = mode_factors.get(self.transport_mode, Decimal('1'))
+        return Decimal(str(self.distance_km)) * factor if self.distance_km else Decimal('0')
 
 
 class CarbonCredit(models.Model):

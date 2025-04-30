@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-emerald-700">
+    <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-emerald-600">Employer Registration</h2>
+            <p class="text-gray-600 mt-2">Register your company to manage employee carbon credits</p>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Account Credentials Section -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-medium text-gray-900">Account Credentials</h3>
+                
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="email" name="email" id="email" required
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                           placeholder="test@example.com">
+                    {% if serializer.errors.email %}
+                    <p class="mt-1 text-sm text-red-600">{{ serializer.errors.email.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" name="password" id="password" required
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
+                    {% if serializer.errors.password %}
+                    <p class="mt-1 text-sm text-red-600">{{ serializer.errors.password.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                    <input type="password" name="confirm_password" id="confirm_password" required
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500">
+                    {% if serializer.errors.confirm_password %}
+                    <p class="mt-1 text-sm text-red-600">{{ serializer.errors.confirm_password.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Company Information -->
+            <div>
+                <label for="company_name" class="block text-sm font-medium text-gray-700">Company Name</label>
+                <input type="text" name="company_name" id="company_name" required
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                       placeholder="Test Company">
+                {% if serializer.errors.company_name %}
+                <p class="mt-1 text-sm text-red-600">{{ serializer.errors.company_name.0 }}</p>
+                {% endif %}
+            </div>
+
+            <button type="submit"
+                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                Create Account
+            </button>
+        </form>
+
+        <div class="mt-6 text-center">
+            <p class="text-sm text-gray-600">
+                Already have an account?
+                <a href="{% url 'login' %}" class="font-medium text-emerald-600 hover:text-emerald-500">Sign in</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

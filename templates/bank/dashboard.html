@@ -1,247 +1,117 @@
-{% extends 'bank/base.html' %}
+{% extends "bank/base.html" %}
 {% load static %}
 
 {% block title_page %}Dashboard{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
-{% block page_description %}Overview of carbon credit trading and market activity{% endblock %}
 
 {% block bank_content %}
-<!-- Quick Stats -->
-<div class="quick-stats">
-    <div class="stat-card">
-        <div class="stat-title">Total Carbon Credits</div>
-        <div class="stat-value">{{ total_credits|default:"0" }}</div>
-        <div class="stat-change {% if credit_change >= 0 %}positive{% else %}negative{% endif %}">
-            {% if credit_change >= 0 %}↑{% else %}↓{% endif %}
-            {{ credit_change|cut:'-' }}% from last month
-        </div>
-    </div>
-
-            <div class="stat-card">
-        <div class="stat-title">Active Employers</div>
-        <div class="stat-value">{{ active_employers|default:"0" }}</div>
-        <div class="stat-change {% if employer_change >= 0 %}positive{% else %}negative{% endif %}">
-            {% if employer_change >= 0 %}↑{% else %}↓{% endif %}
-            {{ employer_change|cut:'-' }}% from last month
+<div class="dashboard-container">
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="rounded-full bg-blue-100 p-3 mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                 </div>
-            </div>
-            
-            <div class="stat-card">
-        <div class="stat-title">Average Credit Price</div>
-        <div class="stat-value">${{ avg_price|default:"0.00" }}</div>
-        <div class="stat-change {% if price_change >= 0 %}positive{% else %}negative{% endif %}">
-            {% if price_change >= 0 %}↑{% else %}↓{% endif %}
-            {{ price_change|cut:'-' }}% from last month
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Total Credits</p>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ total_credits }}</h3>
                 </div>
-            </div>
-            
-            <div class="stat-card">
-        <div class="stat-title">Monthly Trading Volume</div>
-        <div class="stat-value">${{ monthly_volume|default:"0.00" }}</div>
-        <div class="stat-change {% if volume_change >= 0 %}positive{% else %}negative{% endif %}">
-            {% if volume_change >= 0 %}↑{% else %}↓{% endif %}
-            {{ volume_change|cut:'-' }}% from last month
-                    </div>
-                </div>
-            </div>
-            
-<!-- Main Content Grid -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Market Activity Chart -->
-    <div class="lg:col-span-2 bg-white rounded-lg shadow">
-        <div class="p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-900">Market Activity</h2>
-                <select class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <option>Last 7 Days</option>
-                    <option>Last 30 Days</option>
-                    <option>Last 90 Days</option>
-                </select>
-                    </div>
-            <div class="h-80" id="market-activity-chart">
-                <!-- Chart will be rendered here -->
             </div>
         </div>
-    </div>
-    
-    <!-- Pending Approvals -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-900">Pending Approvals</h2>
-                {% if pending_approvals %}
-                <a href="{% url 'bank:bank_approvals' %}" class="text-sm text-blue-600 hover:text-blue-800">View all</a>
-                {% endif %}
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="rounded-full bg-green-100 p-3 mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                 </div>
-                
-            {% if pending_approvals %}
-            <div class="space-y-4">
-                {% for approval in pending_approvals %}
-                <div class="flex items-start p-4 bg-gray-50 rounded-lg">
-                    <div class="flex-shrink-0">
-                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full {% if approval.type == 'registration' %}bg-purple-100 text-purple-600{% else %}bg-blue-100 text-blue-600{% endif %}">
-                            {% if approval.type == 'registration' %}
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                            </svg>
-                            {% else %}
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
-                            {% endif %}
-                        </span>
-                    </div>
-                    <div class="ml-4 flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900">
-                            {{ approval.employer_name }}
-                        </p>
-                        <p class="text-sm text-gray-500">
-                            {{ approval.type|title }} Request
-                        </p>
-                        <p class="text-xs text-gray-400 mt-1">
-                            {{ approval.submitted_at|timesince }} ago
-                        </p>
-                    </div>
-                    <div class="ml-4">
-                        <a href="{% url 'bank:employer_approval' approval.id %}" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            Review
-                        </a>
-                    </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Verified Transactions</p>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ verified_transactions }}</h3>
                 </div>
-                {% endfor %}
             </div>
-            {% else %}
-            <div class="text-center py-8">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No pending approvals</h3>
-                <p class="mt-1 text-sm text-gray-500">All requests have been processed</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="rounded-full bg-purple-100 p-3 mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Active Employers</p>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ active_employers }}</h3>
+                </div>
             </div>
-            {% endif %}
         </div>
     </div>
     
     <!-- Recent Transactions -->
-    <div class="lg:col-span-2 bg-white rounded-lg shadow">
-        <div class="p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-900">Recent Transactions</h2>
-                <a href="{% url 'bank:bank_trading' %}" class="text-sm text-blue-600 hover:text-blue-800">View all</a>
-            </div>
-            
-            {% if recent_transactions %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for transaction in recent_transactions %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0 h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
-                                        <span class="text-sm font-medium text-gray-600">{{ transaction.buyer.name|slice:":2" }}</span>
-                                    </div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900">
-                                            {{ transaction.buyer.name }} → {{ transaction.seller.name }}
-                                        </div>
-                                        <div class="text-sm text-gray-500">
-                                            ID: {{ transaction.id }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">{{ transaction.credit_amount }} credits</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">${{ transaction.price_per_credit }}</div>
-                                <div class="text-sm text-gray-500">per credit</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    {% if transaction.status == 'completed' %}bg-green-100 text-green-800
-                                    {% elif transaction.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                    {% elif transaction.status == 'failed' %}bg-red-100 text-red-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ transaction.status|title }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ transaction.created_at|date:"M d, Y H:i" }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-8">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No transactions yet</h3>
-                <p class="mt-1 text-sm text-gray-500">Transactions will appear here once they are made</p>
-            </div>
-            {% endif %}
+    <div class="bg-white rounded-lg shadow mb-8">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-900">Recent Transactions</h2>
         </div>
-    </div>
-
-    <!-- Credit Distribution -->
-    <div class="bg-white rounded-lg shadow">
-        <div class="p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-900">Credit Distribution</h2>
-                <button type="button" class="text-sm text-gray-500 hover:text-gray-700">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </button>
-            </div>
-            <div class="h-64" id="credit-distribution-chart">
-                <!-- Chart will be rendered here -->
-            </div>
-            <div class="mt-4 grid grid-cols-2 gap-4">
-                <div class="text-center">
-                    <div class="text-2xl font-semibold text-gray-900">{{ total_employers }}</div>
-                    <div class="text-sm text-gray-500">Total Employers</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-2xl font-semibold text-gray-900">{{ avg_credits_per_employer }}</div>
-                    <div class="text-sm text-gray-500">Avg. Credits/Employer</div>
-                </div>
-            </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employer</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for transaction in recent_transactions %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ transaction.id }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ transaction.employer.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ transaction.amount }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ transaction.date|date:"M d, Y" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if transaction.status == 'verified' %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Verified</span>
+                            {% elif transaction.status == 'pending' %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                            {% else %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Rejected</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No transactions found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
-{{ block.super }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Market Activity Chart
-    const marketActivityCtx = document.getElementById('market-activity-chart').getContext('2d');
-    new Chart(marketActivityCtx, {
+    // Sample chart data - would be replaced with real data in production
+    document.addEventListener('DOMContentLoaded', function() {
+        // Market Activity Chart
+        const marketCtx = document.getElementById('marketActivityChart').getContext('2d');
+        const marketChart = new Chart(marketCtx, {
             type: 'line',
             data: {
-            labels: {{ chart_labels|safe }},
+                labels: Array.from({length: 30}, (_, i) => `Day ${i+1}`),
                 datasets: [{
-                label: 'Trading Volume',
-                data: {{ trading_volume_data|safe }},
-                borderColor: '#2563EB',
-                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    label: 'Credits Traded',
+                    data: Array.from({length: 30}, () => Math.floor(Math.random() * 100) + 20),
+                    borderColor: '#2563EB',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
                     fill: true,
-                tension: 0.4
+                    tension: 0.4
                 }]
             },
             options: {
@@ -254,36 +124,23 @@
                 },
                 scales: {
                     y: {
-                        beginAtZero: true,
-                        grid: {
-                        display: true,
-                        drawBorder: false
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                    }
+                        beginAtZero: true
                     }
                 }
             }
         });
         
-    // Credit Distribution Chart
-    const creditDistributionCtx = document.getElementById('credit-distribution-chart').getContext('2d');
-    new Chart(creditDistributionCtx, {
+        // Employer Distribution Chart
+        const employerCtx = document.getElementById('employerDistributionChart').getContext('2d');
+        const employerChart = new Chart(employerCtx, {
             type: 'doughnut',
             data: {
-            labels: {{ distribution_labels|safe }},
+                labels: ['Acme Corp', 'Globex', 'Initech', 'Umbrella Corp', 'Others'],
                 datasets: [{
-                data: {{ distribution_data|safe }},
+                    data: [35, 25, 15, 10, 15],
                     backgroundColor: [
-                    '#3B82F6',
-                    '#10B981',
-                    '#F59E0B',
-                    '#EF4444',
-                    '#8B5CF6'
-                ]
+                        '#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'
+                    ]
                 }]
             },
             options: {
@@ -291,15 +148,59 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                        padding: 20
+                        position: 'right'
                     }
                 }
+            }
+        });
+        
+        // Credit Price Chart
+        const priceCtx = document.getElementById('creditPriceChart').getContext('2d');
+        const priceChart = new Chart(priceCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Avg. Price ($)',
+                    data: [12, 15, 18, 14, 20, 22],
+                    borderColor: '#10B981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
             },
-            cutout: '70%'
-        }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+        
+        // Chart period buttons
+        document.querySelectorAll('.chart-period-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.chart-period-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // In a real app, this would fetch new data based on the period
+                const period = this.dataset.period;
+                console.log(`Changing chart to ${period} days period`);
+                
+                // Update chart with new data (simulated)
+                marketChart.data.labels = Array.from({length: parseInt(period)}, (_, i) => `Day ${i+1}`);
+                marketChart.data.datasets[0].data = Array.from({length: parseInt(period)}, () => Math.floor(Math.random() * 100) + 20);
+                marketChart.update();
+            });
+        });
     });
 </script>
 {% endblock %}
