@@ -1,186 +1,386 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ page_title }} - Carbon Credits Platform{% endblock %}
+{% block title %}{% block title_page %}{% endblock %} - Bank Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Layout */
+    .bank-layout {
+        display: flex;
+        min-height: 100vh;
+        background-color: #F3F4F6;
+    }
+
+    /* Sidebar */
+    .bank-sidebar {
+        width: 280px;
+        background-color: #1E293B;
+        color: #E2E8F0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 40;
+        transition: all 0.3s;
+    }
+
+    .sidebar-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar-nav {
+        padding: 1rem 0;
+    }
+
+    .nav-group {
+        padding: 0.5rem 0;
+    }
+
+    .nav-group-title {
+        padding: 0.5rem 1.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #94A3B8;
+        letter-spacing: 0.05em;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1.5rem;
+        color: #E2E8F0;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .nav-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-item.active {
+        background-color: #2563EB;
+        color: white;
+    }
+
+    .nav-item svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin-right: 0.75rem;
+    }
+
+    /* Main Content */
+    .bank-main {
+        flex: 1;
+        margin-left: 280px;
+        padding: 2rem;
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .page-title {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .page-description {
+        margin-top: 0.5rem;
+        color: #6B7280;
+    }
+
+    /* Quick Stats */
+    .quick-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-title {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6B7280;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #111827;
+        margin-top: 0.5rem;
+    }
+
+    .stat-change {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+
+    .stat-change.positive {
+        color: #059669;
+    }
+
+    .stat-change.negative {
+        color: #DC2626;
+    }
+
+    /* User Profile */
+    .user-profile {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        margin-top: auto;
+    }
+
+    .profile-info {
+        margin-left: 0.75rem;
+    }
+
+    .profile-name {
+        font-weight: 600;
+        color: white;
+    }
+
+    .profile-role {
+        font-size: 0.75rem;
+        color: #94A3B8;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .bank-sidebar {
+            transform: translateX(-100%);
+        }
+
+        .bank-sidebar.open {
+            transform: translateX(0);
+        }
+
+        .bank-main {
+            margin-left: 0;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 30;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+    }
+
+    /* Notifications */
+    .notification-badge {
+        background-color: #EF4444;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        margin-left: auto;
+    }
+
+    /* Actions Bar */
+    .actions-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .action-button {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .action-button.primary {
+        background-color: #2563EB;
+        color: white;
+    }
+
+    .action-button.primary:hover {
+        background-color: #1D4ED8;
+    }
+
+    .action-button.secondary {
+        background-color: white;
+        color: #374151;
+        border: 1px solid #D1D5DB;
+    }
+
+    .action-button.secondary:hover {
+        background-color: #F9FAFB;
+    }
+
+    .action-button svg {
+        width: 1rem;
+        height: 1rem;
+        margin-right: 0.5rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <!-- Mobile navbar -->
-        <nav class="navbar navbar-expand-md navbar-dark bg-dark d-md-none">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="{% url 'bank:bank_dashboard' %}">Carbon Bank</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="mobileSidebar">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
-                            <a class="nav-link" href="{% url 'bank:bank_dashboard' %}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                        </li>
-                        <li class="nav-item {% if active_page == 'approvals' %}active{% endif %}">
-                            <a class="nav-link" href="{% url 'bank:bank_approvals' %}"><i class="fas fa-check-circle"></i> Approvals</a>
-                        </li>
-                        <li class="nav-item {% if active_page == 'reports' %}active{% endif %}">
-                            <a class="nav-link" href="{% url 'bank:bank_reports' %}"><i class="fas fa-chart-line"></i> Reports</a>
-                        </li>
-                        <li class="nav-item {% if active_page == 'employers' %}active{% endif %}">
-                            <a class="nav-link" href="{% url 'bank:bank_employers' %}"><i class="fas fa-building"></i> Employers</a>
-                        </li>
-                        <li class="nav-item {% if active_page == 'profile' %}active{% endif %}">
-                            <a class="nav-link" href="{% url 'bank:profile' %}"><i class="fas fa-user"></i> Profile</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                        </li>
-                    </ul>
+<div class="bank-layout">
+    <!-- Sidebar -->
+    <aside class="bank-sidebar">
+        <div class="sidebar-header">
+            <img src="{% static 'img/logo.png' %}" alt="Bank Logo" class="h-8">
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-group">
+                <div class="nav-group-title">Overview</div>
+                <a href="{% url 'bank:bank_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_dashboard' %}active{% endif %}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    Dashboard
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Management</div>
+                <a href="{% url 'bank:bank_employers' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_employers' %}active{% endif %}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Employers
+                </a>
+                <a href="{% url 'bank:bank_approvals' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_approvals' %}active{% endif %}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Approvals
+                    {% if pending_approvals_count %}
+                    <span class="notification-badge">{{ pending_approvals_count }}</span>
+                    {% endif %}
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Trading</div>
+                <a href="{% url 'bank:bank_trading' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_trading' %}active{% endif %}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Market Overview
+                </a>
+                <a href="{% url 'bank:bank_reports' %}" class="nav-item {% if request.resolver_match.url_name == 'bank_reports' %}active{% endif %}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Reports
+                </a>
                 </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Settings</div>
+                <a href="{% url 'bank:profile' %}" class="nav-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Settings
+                </a>
             </div>
         </nav>
 
-        <!-- Sidebar - hidden on mobile -->
-        <div class="col-md-3 col-lg-2 d-none d-md-block sidebar" id="sidebarMenu">
-            <div class="sidebar bg-dark text-white h-100">
-                <div class="sidebar-header">
-                    <h3>Carbon Bank</h3>
+        <div class="user-profile">
+            <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
+                <span class="text-lg font-medium text-white">{{ request.user.first_name|first }}{{ request.user.last_name|first }}</span>
                 </div>
-                <ul class="list-unstyled components">
-                    <li {% if active_page == 'dashboard' %}class="active"{% endif %}>
-                        <a href="{% url 'bank:bank_dashboard' %}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                    </li>
-                    <li {% if active_page == 'approvals' %}class="active"{% endif %}>
-                        <a href="{% url 'bank:bank_approvals' %}"><i class="fas fa-check-circle"></i> Approvals</a>
-                    </li>
-                    <li {% if active_page == 'reports' %}class="active"{% endif %}>
-                        <a href="{% url 'bank:bank_reports' %}"><i class="fas fa-chart-line"></i> Reports</a>
-                    </li>
-                    <li {% if active_page == 'employers' %}class="active"{% endif %}>
-                        <a href="{% url 'bank:bank_employers' %}"><i class="fas fa-building"></i> Employers</a>
-                    </li>
-                    <li {% if active_page == 'profile' %}class="active"{% endif %}>
-                        <a href="{% url 'bank:profile' %}"><i class="fas fa-user"></i> Profile</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                    </li>
-                </ul>
+            <div class="profile-info">
+                <div class="profile-name">{{ request.user.get_full_name }}</div>
+                <div class="profile-role">Bank Administrator</div>
             </div>
         </div>
+    </aside>
 
-        <!-- Main content -->
-        <main class="col-12 col-md-9 col-lg-10 ms-sm-auto px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">{{ page_title }}</h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        {% block header_buttons %}{% endblock %}
-                    </div>
-                </div>
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Main Content -->
+    <main class="bank-main">
+        <div class="page-header">
+            <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+            <p class="page-description">{% block page_description %}{% endblock %}</p>
             </div>
             
             {% if messages %}
-            <div class="messages">
+        <div class="mb-6">
                 {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <div class="p-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
                     {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
                 {% endfor %}
             </div>
             {% endif %}
             
-            {% block bank_content %}
-            {% endblock %}
+        {% block bank_content %}{% endblock %}
         </main>
-    </div>
 </div>
 
-<style>
-/* Add responsive styles for the sidebar */
-@media (max-width: 767.98px) {
-    .sidebar {
-        position: static;
-        height: auto;
-    }
-    
-    main {
-        padding-top: 60px; /* Space for mobile navbar */
-    }
-    
-    .navbar {
-        position: fixed;
-        top: 0;
-        width: 100%;
-        z-index: 1030;
-    }
-}
+{% block modal %}{% endblock %}
 
-/* Sidebar styles */
-.sidebar {
-    min-height: 100vh;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
-
-.sidebar-header {
-    padding: 20px;
-    background: #343a40;
-}
-
-.sidebar ul li {
-    padding: 10px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.sidebar ul li a {
-    padding: 10px 15px;
-    display: block;
-    color: rgba(255,255,255,0.8);
-    text-decoration: none;
-    transition: all 0.3s;
-}
-
-.sidebar ul li a:hover, 
-.sidebar ul li.active a {
-    color: #fff;
-    background: rgba(255,255,255,0.1);
-}
-
-.sidebar ul li a i {
-    margin-right: 10px;
-}
-
-/* Mobile navigation styles */
-.navbar-toggler {
-    border: none;
-    padding: 10px;
-}
-
-.navbar-dark .navbar-nav .nav-link {
-    color: rgba(255,255,255,0.8);
-    padding: 10px 15px;
-}
-
-.navbar-dark .navbar-nav .nav-link:hover,
-.navbar-dark .navbar-nav .active .nav-link {
-    color: #fff;
-    background: rgba(255,255,255,0.1);
-}
-</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Initialize Bootstrap components
-    document.addEventListener('DOMContentLoaded', function() {
-        // For handling sidebar toggling on mobile
-        var navbarToggler = document.querySelector('.navbar-toggler');
-        if (navbarToggler) {
-            navbarToggler.addEventListener('click', function() {
-                var target = document.querySelector('#mobileSidebar');
-                if (target) {
-                    target.classList.toggle('show');
-                }
-            });
+    // Mobile sidebar toggle
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.querySelector('.bank-sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', toggleSidebar);
+    }
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+
+    function toggleSidebar() {
+        sidebar.classList.toggle('open');
+        sidebarOverlay.classList.toggle('show');
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('show');
+    }
+
+    // Close sidebar on window resize if in mobile view
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 1024) {
+            closeSidebar();
         }
     });
 </script>

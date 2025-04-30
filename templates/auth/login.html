@@ -208,32 +208,32 @@
             <div class="login-logo">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                </svg>
+                    </svg>
             </div>
             <h1>Welcome Back</h1>
             <p class="text-gray-600">Sign in to manage your carbon credits</p>
         </div>
-
-        {% if form.errors %}
+                
+                {% if form.errors %}
         <div class="error-message">
             Your username and password didn't match. Please try again.
-        </div>
-        {% endif %}
-
+                </div>
+                {% endif %}
+                
         <form method="post" action="{% url 'login' %}">
             {% csrf_token %}
             <div class="form-group">
                 <label for="id_username">Username</label>
                 <input type="text" name="username" id="id_username" class="form-control" required>
-            </div>
+                        </div>
             <div class="form-group">
                 <label for="id_password">Password</label>
                 <input type="password" name="password" id="id_password" class="form-control" required>
-            </div>
+                            </div>
             <button type="submit" class="btn-login">Sign In</button>
             <input type="hidden" name="next" value="{{ next }}">
-        </form>
-
+            </form>
+            
         <div class="login-footer">
             <p>Don't have an account? <a href="{% url 'register' %}">Register here</a></p>
         </div>

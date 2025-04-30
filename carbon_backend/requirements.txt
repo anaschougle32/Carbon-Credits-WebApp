@@ -15,7 +15,7 @@ django-extensions==4.1
 django-htmx==1.23.0
 django-storages==1.14.6
 djangorestframework==3.16.0
-djangorestframework_simplejwt==5.5.0
+djangorestframework_simplejwt
 frozenlist==1.5.0
 googlemaps==4.10.0
 gotrue==2.12.0
@@ -37,7 +37,7 @@ propcache==0.3.1
 psycopg2-binary==2.9.10
 pydantic==2.11.3
 pydantic_core==2.33.1
-PyJWT==2.9.0
+PyJWT
 pytest==8.3.5
 pytest-mock==3.14.0
 python-dateutil==2.9.0.post0
