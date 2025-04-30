@@ -1,0 +1,135 @@
+{% extends 'bank/partials/bank_base.html' %}
+{% load static %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_description %}Detailed information about {{ employer.company_name }}{% endblock %}
+
+{% block bank_content %}
+<div class="bg-white shadow rounded-lg p-6">
+    <!-- Employer Header -->
+    <div class="border-b pb-6 mb-6">
+        <div class="flex justify-between items-center">
+            <h2 class="text-2xl font-bold text-gray-900">{{ employer.company_name }}</h2>
+            <div class="flex space-x-4">
+                {% if not employer.approved %}
+                <form method="POST" action="{% url 'bank:employer_approval' employer.id %}" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
+                        Approve Employer
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'bank:bank_employers' %}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md">
+                    Back to List
+                </a>
+            </div>
+        </div>
+        <div class="mt-4 grid grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-500">Contact Person</p>
+                <p class="text-gray-900">{{ employer.contact_person }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Contact Email</p>
+                <p class="text-gray-900">{{ employer.user.email }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Registration Date</p>
+                <p class="text-gray-900">{{ employer.created_at|date:"F j, Y" }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Status</p>
+                <p class="{% if employer.approved %}text-green-600{% else %}text-yellow-600{% endif %}">
+                    {{ employer.approved|yesno:"Approved,Pending Approval" }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Total Employees -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border">
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Total Employees</h3>
+            <p class="text-3xl font-bold text-blue-600">{{ total_employees }}</p>
+        </div>
+        
+        <!-- Total Trips -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border">
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Total Trips</h3>
+            <p class="text-3xl font-bold text-blue-600">{{ total_trips }}</p>
+        </div>
+        
+        <!-- Verified Trips -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border">
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Verified Trips</h3>
+            <p class="text-3xl font-bold text-green-600">{{ verified_trips }}</p>
+        </div>
+        
+        <!-- Total Credits -->
+        <div class="bg-white rounded-lg shadow-sm p-6 border">
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Total Credits</h3>
+            <p class="text-3xl font-bold text-purple-600">{{ total_credits }}</p>
+        </div>
+    </div>
+
+    <!-- Recent Trips -->
+    <div class="mt-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Trips</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Employee
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Transport Mode
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Distance
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for trip in recent_trips %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ trip.employee.user.get_full_name }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ trip.trip_date|date:"M j, Y" }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ trip.get_transport_mode_display }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ trip.distance_km }} km</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if trip.verification_status == 'verified' %}
+                                    bg-green-100 text-green-800
+                                {% elif trip.verification_status == 'pending' %}
+                                    bg-yellow-100 text-yellow-800
+                                {% else %}
+                                    bg-red-100 text-red-800
+                                {% endif %}">
+                                {{ trip.get_verification_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

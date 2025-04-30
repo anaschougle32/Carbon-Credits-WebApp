@@ -74,7 +74,7 @@ class TripModelTestCase(TestCase):
         self.trip = Trip.objects.create(
             employee=self.employee,
             start_location=self.home_location,
-            start_time=timezone.now(),
+            trip_date=timezone.now().date(),
             transport_mode='bicycle'
         )
     
@@ -188,8 +188,7 @@ class TripAPITestCase(APITestCase):
             employee=self.employee,
             start_location=self.home_location,
             end_location=self.office_location,
-            start_time=timezone.now() - timedelta(hours=2),
-            end_time=timezone.now() - timedelta(hours=1),
+            trip_date=timezone.now().date(),
             transport_mode='bicycle',
             distance_km=Decimal('10.5'),
             carbon_savings=Decimal('1.26'),
@@ -247,7 +246,7 @@ class TripAPITestCase(APITestCase):
         trip = Trip.objects.create(
             employee=self.employee,
             start_location=self.home_location,
-            start_time=timezone.now() - timedelta(minutes=30),
+            trip_date=timezone.now().date(),
             transport_mode='bicycle'
         )
         
@@ -411,7 +410,7 @@ class TripTestCase(TestCase):
         self.trip = Trip.objects.create(
             employee=self.employee,
             start_location=self.home_location,
-            start_time=timezone.now(),
+            trip_date=timezone.now().date(),
             transport_mode='bicycle'
         )
     
@@ -543,7 +542,7 @@ class EmployeeTripFeaturesTestCase(TestCase):
         trip = Trip.objects.create(
             employee=self.employee,
             start_location=self.home_location,
-            start_time=timezone.now() - timedelta(minutes=30),
+            trip_date=timezone.now().date(),
             transport_mode='bicycle'
         )
         
@@ -578,8 +577,7 @@ class EmployeeTripFeaturesTestCase(TestCase):
             employee=self.employee,
             start_location=self.home_location,
             end_location=self.office_location,
-            start_time=timezone.now() - timedelta(hours=1),
-            end_time=timezone.now() - timedelta(minutes=30),
+            trip_date=timezone.now().date(),
             transport_mode='bicycle',
             distance_km=Decimal('5.0'),
             carbon_savings=Decimal('0.6'),
@@ -612,8 +610,7 @@ class EmployeeTripFeaturesTestCase(TestCase):
             employee=self.employee,
             start_location=self.home_location,
             end_location=self.office_location,
-            start_time=timezone.now() - timedelta(days=2),
-            end_time=timezone.now() - timedelta(days=2) + timedelta(hours=1),
+            trip_date=timezone.now().date() - timedelta(days=2),
             transport_mode='bicycle',
             distance_km=Decimal('7.0'),
             carbon_savings=Decimal('0.84'),
@@ -624,8 +621,7 @@ class EmployeeTripFeaturesTestCase(TestCase):
             employee=self.employee,
             start_location=self.office_location,
             end_location=self.home_location,
-            start_time=timezone.now() - timedelta(days=1),
-            end_time=timezone.now() - timedelta(days=1) + timedelta(hours=1),
+            trip_date=timezone.now().date() - timedelta(days=1),
             transport_mode='bicycle',
             distance_km=Decimal('7.0'),
             carbon_savings=Decimal('0.84'),
@@ -644,8 +640,7 @@ class EmployeeTripFeaturesTestCase(TestCase):
             employee=self.employee,
             start_location=self.home_location,
             end_location=self.office_location,
-            start_time=timezone.now() - timedelta(days=3),
-            end_time=timezone.now() - timedelta(days=3) + timedelta(hours=1),
+            trip_date=timezone.now().date() - timedelta(days=3),
             transport_mode='bicycle',
             distance_km=Decimal('10.0'),
             carbon_savings=Decimal('1.2'),

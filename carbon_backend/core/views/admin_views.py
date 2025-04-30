@@ -42,7 +42,7 @@ def dashboard(request):
     
     # Count recent trips in last 7 days
     seven_days_ago = timezone.now() - timezone.timedelta(days=7)
-    recent_trip_count = Trip.objects.filter(start_time__gte=seven_days_ago).count()
+    recent_trip_count = Trip.objects.filter(trip_date__gte=seven_days_ago.date()).count()
     
     # Get carbon credits with proper formatting
     total_credits_raw = CarbonCredit.objects.aggregate(Sum('amount'))['amount__sum'] or 0
@@ -54,7 +54,7 @@ def dashboard(request):
     # Get recent trips for the dashboard
     recent_trips = Trip.objects.select_related(
         'employee', 'employee__user', 'employee__employer', 'start_location', 'end_location'
-    ).order_by('-start_time')[:10]
+    ).order_by('-trip_date')[:10]
     
     context = {
         'total_users': total_users,
@@ -86,7 +86,7 @@ def dashboard_recent_trips(request):
     # Get recent trips with employee and location details
     trips = Trip.objects.select_related(
         'employee', 'employee__user', 'start_location', 'end_location'
-    ).order_by('-start_time')[:10]
+    ).order_by('-trip_date')[:10]
     
     # Get transport modes for display
     transport_modes = Trip.TRANSPORT_MODES
@@ -197,7 +197,7 @@ def user_detail(request, user_id):
     # Get user's trips if they're an employee
     trips = []
     if user.is_employee and hasattr(user, 'employee_profile'):
-        trips = Trip.objects.filter(employee=user.employee_profile).order_by('-start_time')[:10]
+        trips = Trip.objects.filter(employee=user.employee_profile).order_by('-trip_date')[:10]
     
     # Get user's locations
     locations = Location.objects.filter(created_by=user)
@@ -553,15 +553,15 @@ def export_reports(request):
     
     elif report_type == 'trips':
         # Get trips based on date range
-        trips = Trip.objects.all().select_related('employee', 'employee__user').order_by('-start_time')
+        trips = Trip.objects.all().select_related('employee', 'employee__user').order_by('-trip_date')
         
         # Apply date filter if needed
         if date_range == '7d':
-            trips = trips.filter(start_time__gte=timezone.now() - timezone.timedelta(days=7))
+            trips = trips.filter(trip_date__gte=(timezone.now() - timezone.timedelta(days=7)).date())
         elif date_range == '30d':
-            trips = trips.filter(start_time__gte=timezone.now() - timezone.timedelta(days=30))
+            trips = trips.filter(trip_date__gte=(timezone.now() - timezone.timedelta(days=30)).date())
         elif date_range == '90d':
-            trips = trips.filter(start_time__gte=timezone.now() - timezone.timedelta(days=90))
+            trips = trips.filter(trip_date__gte=(timezone.now() - timezone.timedelta(days=90)).date())
         
         # Headers
         data.append(['Trip ID', 'Employee', 'Employer', 'Start Time', 'End Time', 'Transport Mode', 'Distance (km)', 'Carbon Savings (kg)', 'Credits Earned', 'Status'])
@@ -572,7 +572,7 @@ def export_reports(request):
                 trip.id,
                 trip.employee.user.get_full_name(),
                 trip.employee.employer.company_name,
-                trip.start_time.strftime('%Y-%m-%d %H:%M'),
+                trip.trip_date.strftime('%Y-%m-%d %H:%M'),
                 trip.end_time.strftime('%Y-%m-%d %H:%M') if trip.end_time else 'N/A',
                 trip.get_transport_mode_display(),
                 trip.distance,
@@ -587,11 +587,11 @@ def export_reports(request):
         
         # Apply date filter if needed
         if date_range == '7d':
-            credits = credits.filter(timestamp__gte=timezone.now() - timezone.timedelta(days=7))
+            credits = credits.filter(timestamp__gte=(timezone.now() - timezone.timedelta(days=7)).date())
         elif date_range == '30d':
-            credits = credits.filter(timestamp__gte=timezone.now() - timezone.timedelta(days=30))
+            credits = credits.filter(timestamp__gte=(timezone.now() - timezone.timedelta(days=30)).date())
         elif date_range == '90d':
-            credits = credits.filter(timestamp__gte=timezone.now() - timezone.timedelta(days=90))
+            credits = credits.filter(timestamp__gte=(timezone.now() - timezone.timedelta(days=90)).date())
         
         # Headers
         data.append(['Credit ID', 'Amount', 'Source Type', 'Owner Type', 'Owner ID', 'Status', 'Timestamp', 'Expiry Date'])
@@ -875,11 +875,11 @@ def generate_report(request):
     
     elif report_type == 'trips':
         # Get trips based on date range
-        trips = Trip.objects.all().select_related('employee', 'employee__user').order_by('-start_time')
+        trips = Trip.objects.all().select_related('employee', 'employee__user').order_by('-trip_date')
         
         # Apply date filter if needed
         if start_date:
-            trips = trips.filter(start_time__gte=start_date)
+            trips = trips.filter(trip_date__gte=start_date.date())
         
         context['trips'] = trips
     

@@ -5,6 +5,16 @@
 {% block page_description %}Record your sustainable commute{% endblock %}
 
 {% block employee_content %}
+{% if messages %}
+<div class="mb-4">
+    {% for message in messages %}
+    <div class="p-4 {% if message.tags == 'success' %}bg-green-100 text-green-700 border-l-4 border-green-500{% elif message.tags == 'error' %}bg-red-100 text-red-700 border-l-4 border-red-500{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
     <h2 class="text-lg font-semibold text-gray-900 mb-6">Trip Details</h2>
     
@@ -67,17 +77,19 @@
             <div>
                 <label for="start_address" class="block text-sm font-medium text-gray-700 mb-1">Start Location</label>
                 <input type="text" id="start_address" name="start_address" required
-                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                <input type="hidden" id="start_latitude" name="start_latitude">
-                <input type="hidden" id="start_longitude" name="start_longitude">
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                       placeholder="Enter start location">
+                <input type="hidden" id="start_latitude" name="start_latitude" value="26.3683">
+                <input type="hidden" id="start_longitude" name="start_longitude" value="-80.1289">
             </div>
             
             <div>
                 <label for="end_address" class="block text-sm font-medium text-gray-700 mb-1">End Location</label>
                 <input type="text" id="end_address" name="end_address" required
-                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                <input type="hidden" id="end_latitude" name="end_latitude">
-                <input type="hidden" id="end_longitude" name="end_longitude">
+                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                       placeholder="Enter end location">
+                <input type="hidden" id="end_latitude" name="end_latitude" value="26.3683">
+                <input type="hidden" id="end_longitude" name="end_longitude" value="-80.1289">
             </div>
         </div>
         
@@ -92,10 +104,8 @@
                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Select transport type</option>
                     <option value="public_transport">Public Transport</option>
-                    <option value="bicycle">Bicycle</option>
-                    <option value="walking">Walking</option>
                     <option value="carpool">Carpool</option>
-                    <option value="work_from_home">Work From Home</option>
+                    <option value="personal_vehicle">Personal Vehicle</option>
                 </select>
             </div>
             
@@ -104,14 +114,14 @@
                 <input type="date" id="date" name="date" required value="{{ today|date:'Y-m-d' }}"
                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
             </div>
-
+            
             <div>
                 <label for="distance" class="block text-sm font-medium text-gray-700 mb-1">Distance (km)</label>
                 <input type="number" id="distance" name="distance" step="0.1" required readonly
                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-50">
-                <p class="mt-1 text-sm text-gray-500">Distance will be calculated automatically from the map</p>
+                <p class="mt-1 text-sm text-gray-500">Distance will be calculated based on transport type</p>
             </div>
-
+            
             <div>
                 <label for="estimated_credits" class="block text-sm font-medium text-gray-700 mb-1">Estimated Credits</label>
                 <input type="text" id="estimated_credits" readonly
@@ -304,22 +314,49 @@
         const transportType = document.getElementById('transport_type').value;
         let credits = 0;
 
-        if (transportType === 'work_from_home') {
-            credits = 10; // Fixed credits for WFH
-        } else {
-            const creditFactors = {
-                'walking': 6,
-                'bicycle': 5,
-                'public_transport': 3,
-                'carpool': 2,
-                'car': 0.5
-            };
-            const factor = creditFactors[transportType] || 1;
-            credits = distance * factor;
-        }
+        const creditFactors = {
+            'public_transport': 3,
+            'carpool': 2,
+            'personal_vehicle': 1
+        };
+        const factor = creditFactors[transportType] || 1;
+        credits = distance * factor;
 
         document.getElementById('estimated_credits').value = credits.toFixed(2) + ' credits';
     }
+
+    // Store the base distance for variation
+    let baseDistance = null;
+
+    // Function to generate random distance between 7-12 km
+    function generateRandomDistance() {
+        const transportType = document.getElementById('transport_type').value;
+        
+        if (!transportType) {
+            // Clear values if no transport type is selected
+            document.getElementById('distance').value = '';
+            document.getElementById('estimated_credits').value = '';
+            return;
+        }
+
+        if (!baseDistance) {
+            // Generate initial random number between 7 and 12 with 1 decimal place
+            baseDistance = (Math.random() * 5 + 7).toFixed(1);
+        } else {
+            // Generate new distance within ±1.5 km of the base distance
+            const minDistance = Math.max(7, parseFloat(baseDistance) - 1.5);
+            const maxDistance = Math.min(12, parseFloat(baseDistance) + 1.5);
+            baseDistance = (Math.random() * (maxDistance - minDistance) + minDistance).toFixed(1);
+        }
+
+        document.getElementById('distance').value = baseDistance;
+        calculateEstimatedCredits(parseFloat(baseDistance));
+    }
+
+    // Add event listener for transport type changes
+    document.getElementById('transport_type').addEventListener('change', function() {
+        generateRandomDistance();
+    });
 
     // Load Google Maps API
     function loadGoogleMaps() {

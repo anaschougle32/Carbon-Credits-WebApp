@@ -16,6 +16,7 @@ from users.models import EmployeeProfile
 from marketplace.models import MarketOffer, EmployeeCreditOffer
 from datetime import timedelta
 from django.db.models.functions import TruncMonth
+from django.db import models
 
 @login_required
 @user_passes_test(lambda u: u.is_employee)
@@ -44,10 +45,16 @@ def dashboard(request):
         verification_status='verified'
     ).aggregate(Sum('carbon_savings'))['carbon_savings__sum'] or 0
     
+    # Calculate total credits earned
+    total_credits = Trip.objects.filter(
+        employee=employee,
+        verification_status='verified'
+    ).aggregate(Sum('credits_earned'))['credits_earned__sum'] or 0
+    
     # Get recent trips
     recent_trips = Trip.objects.filter(
         employee=employee
-    ).order_by('-start_time')[:5]
+    ).order_by('-trip_date', '-created_at')[:5]
     
     # Get pending trips
     pending_trips = Trip.objects.filter(
@@ -62,6 +69,7 @@ def dashboard(request):
         'completed_trips': completed_trips,
         'total_distance': total_distance,
         'co2_saved': co2_saved,
+        'total_credits': total_credits,
         'recent_trips': recent_trips,
         'pending_trips': pending_trips,
     }
@@ -176,12 +184,12 @@ def trips_list(request):
     employee = request.user.employee_profile
     
     # Get trips for this employee
-    trips = employee.trips.all().order_by('-start_time')
+    trips = employee.trips.all().order_by('-trip_date')
     
     # Calculate aggregate statistics
     stats = trips.aggregate(
-        total_distance=Sum('distance_km'),
-        total_co2_saved=Sum('carbon_savings')
+        total_distance=models.Sum('distance_km'),
+        total_co2_saved=models.Sum('carbon_savings')
     )
     
     # Default values if no trips exist

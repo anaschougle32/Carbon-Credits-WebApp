@@ -92,11 +92,28 @@ def create_trip(request):
         trip_date_str = request.POST.get('date')
         distance_km = request.POST.get('distance')
         notes = request.POST.get('notes', '')
+
+        # Print debug information
+        print(f"Received form data:")
+        print(f"Start: {start_address} ({start_latitude}, {start_longitude})")
+        print(f"End: {end_address} ({end_latitude}, {end_longitude})")
+        print(f"Transport: {transport_mode}")
+        print(f"Date: {trip_date_str}")
+        print(f"Distance: {distance_km}")
         
         # Validate required fields
         if not all([start_address, start_latitude, start_longitude, end_address, end_latitude, end_longitude, 
                    transport_mode, trip_date_str, distance_km]):
-            messages.error(request, "Please fill in all required fields.")
+            missing_fields = []
+            if not start_address: missing_fields.append("Start Address")
+            if not start_latitude or not start_longitude: missing_fields.append("Start Location")
+            if not end_address: missing_fields.append("End Address")
+            if not end_latitude or not end_longitude: missing_fields.append("End Location")
+            if not transport_mode: missing_fields.append("Transport Type")
+            if not trip_date_str: missing_fields.append("Date")
+            if not distance_km: missing_fields.append("Distance")
+            
+            messages.error(request, f"Please fill in all required fields: {', '.join(missing_fields)}")
             return redirect('employee_trip_log')
         
         # Get employee profile
@@ -104,57 +121,51 @@ def create_trip(request):
         
         # Create start location
         start_location = Location.objects.create(
-            name=f"Start Location - {trip_date_str}",
+            name=f"Trip Start - {trip_date_str}",
             address=start_address,
-            latitude=Decimal(start_latitude),
-            longitude=Decimal(start_longitude),
+            latitude=float(start_latitude),
+            longitude=float(start_longitude),
             location_type='trip_start',
             created_by=request.user
         )
         
         # Create end location
         end_location = Location.objects.create(
-            name=f"End Location - {trip_date_str}",
+            name=f"Trip End - {trip_date_str}",
             address=end_address,
-            latitude=Decimal(end_latitude),
-            longitude=Decimal(end_longitude),
+            latitude=float(end_latitude),
+            longitude=float(end_longitude),
             location_type='trip_end',
             created_by=request.user
         )
         
         # Parse date
-        trip_date = datetime.strptime(trip_date_str, "%Y-%m-d").date()
+        trip_date = datetime.strptime(trip_date_str, '%Y-%m-%d').date()
         trip_datetime = timezone.make_aware(datetime.combine(trip_date, datetime.min.time()))
         
         # Calculate credits based on transport mode and distance
-        distance_km = Decimal(distance_km)
-        if transport_mode == 'work_from_home':
-            credits_earned = Decimal('10')  # Fixed credits for WFH
-            carbon_savings = Decimal('10')  # Fixed carbon savings for WFH
-        else:
-            mode_factors = {
-                'walking': Decimal('6'),
-                'bicycle': Decimal('5'),
-                'public_transport': Decimal('3'),
-                'carpool': Decimal('2'),
-                'car': Decimal('0.5')
-            }
-            factor = mode_factors.get(transport_mode, Decimal('1'))
-            credits_earned = distance_km * factor
-            carbon_savings = distance_km * factor  # Using same factor for carbon savings
+        distance_km = float(distance_km)
+        mode_factors = {
+            'public_transport': 3,
+            'carpool': 2,
+            'personal_vehicle': 1
+        }
+        factor = mode_factors.get(transport_mode, 1)
+        credits_earned = distance_km * factor
+        carbon_savings = distance_km * factor  # Using same factor for carbon savings
         
         # Create the trip
         trip = Trip.objects.create(
             employee=employee,
             start_location=start_location,
             end_location=end_location,
-            start_time=trip_datetime,
-            end_time=trip_datetime,
+            trip_date=trip_date,
             transport_mode=transport_mode,
             distance_km=distance_km,
             carbon_savings=carbon_savings,
             credits_earned=credits_earned,
-            notes=notes
+            notes=notes,
+            verification_status='pending'
         )
         
         # Create carbon credits
@@ -168,10 +179,11 @@ def create_trip(request):
                 expiry_date=timezone.now() + timedelta(days=365)  # 1 year validity
             )
         
-        messages.success(request, "Trip recorded successfully!")
+        messages.success(request, f"Trip recorded successfully! You earned {credits_earned:.1f} credits.")
         return redirect('employee_trips')
         
     except Exception as e:
+        print(f"Error creating trip: {str(e)}")  # Debug print
         messages.error(request, f"An error occurred while recording the trip: {str(e)}")
         return redirect('employee_trip_log')
 

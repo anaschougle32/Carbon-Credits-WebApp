@@ -24,7 +24,7 @@ def credits_list(request):
     employee = request.user.employee_profile
     
     # Get all trips and their credits
-    trips = Trip.objects.filter(employee=employee).order_by('-start_time')
+    trips = Trip.objects.filter(employee=employee).order_by('-trip_date')
     
     # Calculate total credits
     total_credits = trips.aggregate(Sum('credits_earned'))['credits_earned__sum'] or 0

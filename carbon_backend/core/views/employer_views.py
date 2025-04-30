@@ -40,8 +40,8 @@ def dashboard(request):
     this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     last_month_start = (this_month_start - timedelta(days=1)).replace(day=1)
     
-    this_month_credits = all_trips.filter(start_time__gte=this_month_start).aggregate(Sum('credits_earned'))['credits_earned__sum'] or 0
-    last_month_credits = all_trips.filter(start_time__gte=last_month_start, start_time__lt=this_month_start).aggregate(Sum('credits_earned'))['credits_earned__sum'] or 1  # Avoid division by zero
+    this_month_credits = all_trips.filter(trip_date__gte=this_month_start).aggregate(Sum('credits_earned'))['credits_earned__sum'] or 0
+    last_month_credits = all_trips.filter(trip_date__gte=last_month_start, trip_date__lt=this_month_start).aggregate(Sum('credits_earned'))['credits_earned__sum'] or 1  # Avoid division by zero
     
     credits_growth = ((this_month_credits - last_month_credits) / last_month_credits) * 100 if last_month_credits > 0 else 0
     
@@ -54,7 +54,7 @@ def dashboard(request):
     employee_profiles = employer_profile.employees.filter(approved=True)
     
     for profile in employee_profiles[:5]:  # Limit to top 5
-        employee_trips = all_trips.filter(employee=profile, start_time__gte=this_month_start)
+        employee_trips = all_trips.filter(employee=profile, trip_date__gte=this_month_start)
         trip_count = employee_trips.count()
         total_distance = employee_trips.aggregate(Sum('distance_km'))['distance_km__sum'] or 0
         total_credits = employee_trips.aggregate(Sum('credits_earned'))['credits_earned__sum'] or 0
@@ -107,7 +107,7 @@ def employees_list(request):
     employee_ids = employees.filter(approved=True).values_list('id', flat=True)
     active_employees_count = Trip.objects.filter(
         employee__in=employee_ids,
-        start_time__gte=one_week_ago
+        trip_date__gte=one_week_ago
     ).values('employee').distinct().count()
     
     # For each employee, get their carbon credit statistics
@@ -386,7 +386,7 @@ def pending_trips(request):
     pending_trips = Trip.objects.filter(
         employee__in=employee_ids,
         verification_status='pending'
-    ).order_by('-start_time')
+    ).order_by('-trip_date')
     
     context = {
         'pending_trips': pending_trips,

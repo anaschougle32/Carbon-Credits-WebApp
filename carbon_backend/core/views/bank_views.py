@@ -114,8 +114,8 @@ def dashboard_analytics(request):
     # Trips logged per day
     trips_per_day = (
         Trip.objects
-        .filter(start_time__gte=start_date)
-        .extra(select={'day': "DATE(start_time)"})
+        .filter(trip_date__gte=start_date)
+        .extra(select={'day': "DATE(trip_date)"})
         .values('day')
         .annotate(count=Count('id'))
         .order_by('day')
@@ -124,7 +124,7 @@ def dashboard_analytics(request):
     # Transport modes distribution
     transport_modes = (
         Trip.objects
-        .filter(start_time__gte=start_date)
+        .filter(trip_date__gte=start_date)
         .values('transport_mode')
         .annotate(count=Count('id'))
         .order_by('-count')
@@ -180,6 +180,74 @@ def employers_list(request):
     }
     
     return render(request, 'bank/employers.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def employer_detail(request, employer_id):
+    """
+    View for displaying detailed information about an employer.
+    """
+    employer = get_object_or_404(EmployerProfile, id=employer_id)
+    
+    # Get employer statistics
+    total_employees = employer.user.employee_set.count()
+    total_trips = Trip.objects.filter(employee__employer=employer).count()
+    verified_trips = Trip.objects.filter(
+        employee__employer=employer,
+        verification_status='verified'
+    ).count()
+    
+    # Calculate total credits earned by employer's employees
+    total_credits = CarbonCredit.objects.filter(
+        trip__employee__employer=employer
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # Get recent trips
+    recent_trips = Trip.objects.filter(
+        employee__employer=employer
+    ).order_by('-trip_date')[:10]
+    
+    context = {
+        'employer': employer,
+        'total_employees': total_employees,
+        'total_trips': total_trips,
+        'verified_trips': verified_trips,
+        'total_credits': round(float(total_credits), 2),
+        'recent_trips': recent_trips,
+        'page_title': f'Employer Details - {employer.company_name}',
+    }
+    
+    return render(request, 'bank/employer_detail.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_bank_admin)
+def employer_edit(request, employer_id):
+    """
+    View for editing employer information.
+    """
+    employer = get_object_or_404(EmployerProfile, id=employer_id)
+    
+    if request.method == 'POST':
+        # Get form data
+        company_name = request.POST.get('company_name')
+        contact_person = request.POST.get('contact_person')
+        industry = request.POST.get('industry')
+        
+        # Update employer information
+        employer.company_name = company_name
+        employer.contact_person = contact_person
+        employer.industry = industry
+        employer.save()
+        
+        messages.success(request, f"Successfully updated {employer.company_name}'s information.")
+        return redirect('bank:bank_employer_detail', employer_id=employer.id)
+    
+    context = {
+        'employer': employer,
+        'page_title': f'Edit Employer - {employer.company_name}',
+    }
+    
+    return render(request, 'bank/employer_edit.html', context)
 
 @login_required
 @user_passes_test(lambda u: u.is_bank_admin)

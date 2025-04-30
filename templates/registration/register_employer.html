@@ -315,7 +315,7 @@
                     </div>
                     {% endif %}
                     
-        <form method="post" action="{% url 'register_employer' %}" id="employer-register-form">
+        <form method="post" action="{% url 'users:employer_register' %}" id="employer-register-form">
             {% csrf_token %}
             
             <!-- Step 1: Personal Information -->
@@ -375,34 +375,6 @@
                 <div class="form-group">
                     <label for="id_company_name">Company Name</label>
                     <input type="text" name="company_name" id="id_company_name" class="form-control" required>
-                            </div>
-                <div class="form-group">
-                    <label for="id_company_address">Company Address</label>
-                    <input type="text" name="company_address" id="id_company_address" class="form-control" required>
-                        </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="id_company_city">City</label>
-                        <input type="text" name="company_city" id="id_company_city" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="id_company_state">State</label>
-                        <input type="text" name="company_state" id="id_company_state" class="form-control" required>
-                    </div>
-                    </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="id_company_zip">ZIP Code</label>
-                        <input type="text" name="company_zip" id="id_company_zip" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="id_company_country">Country</label>
-                        <input type="text" name="company_country" id="id_company_country" class="form-control" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="id_company_website">Company Website (Optional)</label>
-                    <input type="url" name="company_website" id="id_company_website" class="form-control">
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-back" onclick="prevStep(3)">Back</button>

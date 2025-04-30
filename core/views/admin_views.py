@@ -41,7 +41,7 @@ def dashboard(request):
     
     # Count recent trips in last 7 days
     seven_days_ago = timezone.now() - timezone.timedelta(days=7)
-    recent_trip_count = Trip.objects.filter(start_time__gte=seven_days_ago).count()
+    recent_trip_count = Trip.objects.filter(trip_date__gte=seven_days_ago.date()).count()
     
     # Get carbon credits with proper formatting
     total_credits_raw = CarbonCredit.objects.aggregate(Sum('amount'))['amount__sum'] or 0
@@ -53,7 +53,7 @@ def dashboard(request):
     # Get recent trips for the dashboard
     recent_trips = Trip.objects.select_related(
         'employee', 'employee__user', 'employee__employer', 'start_location', 'end_location'
-    ).order_by('-start_time')[:10]
+    ).order_by('-trip_date')[:10]
     
     context = {
         'total_users': total_users,
@@ -85,7 +85,7 @@ def dashboard_recent_trips(request):
     # Get recent trips with employee and location details
     trips = Trip.objects.select_related(
         'employee', 'employee__user', 'start_location', 'end_location'
-    ).order_by('-start_time')[:10]
+    ).order_by('-trip_date')[:10]
     
     # Get transport modes for display
     transport_modes = Trip.TRANSPORT_MODES
@@ -113,7 +113,10 @@ def create_user(request):
 @user_passes_test(is_super_admin)
 def user_detail(request, user_id):
     """Placeholder function for user detail view"""
-    return render(request, 'admin/user_detail.html', {'user_detail': None})
+    user = get_object_or_404(CustomUser, id=user_id)
+    trips = Trip.objects.filter(employee=user.employee_profile).order_by('-trip_date')[:10]
+    context = {'user_detail': user, 'trips': trips}
+    return render(request, 'admin/user_detail.html', context)
 
 @login_required
 @user_passes_test(is_super_admin)
@@ -173,7 +176,7 @@ def reports(request):
     trips_qs = Trip.objects.all()
     credits_qs = CarbonCredit.objects.all()
     if start_date:
-        trips_qs = trips_qs.filter(start_time__gte=start_date, start_time__lte=end_date)
+        trips_qs = trips_qs.filter(trip_date__gte=start_date.date(), trip_date__lte=end_date.date())
         credits_qs = credits_qs.filter(created_at__gte=start_date, created_at__lte=end_date)
     
     if report_type == 'summary':
@@ -204,11 +207,11 @@ def reports(request):
             'total_distance': total_distance,
             'total_carbon_saved': trips_qs.aggregate(Sum('carbon_savings'))['carbon_savings__sum'] or 0,
             'avg_trip_length': round(total_distance / trips_qs.count(), 1) if trips_qs.count() > 0 else 0,
-            'trips': trips_qs.select_related('employee', 'employee__user').order_by('-start_time')[:50],
+            'trips': trips_qs.select_related('employee', 'employee__user').order_by('-trip_date')[:50],
             
             # Data for charts
-            'trip_dates': list(trips_qs.dates('start_time', 'day', order='ASC').values_list('start_time__date', flat=True)),
-            'trip_counts': list(trips_qs.values('start_time__date').annotate(count=Count('id')).values_list('count', flat=True)),
+            'trip_dates': list(trips_qs.dates('trip_date', 'day', order='ASC').values_list('trip_date', flat=True)),
+            'trip_counts': list(trips_qs.values('trip_date').annotate(count=Count('id')).values_list('count', flat=True)),
             'transport_modes': list(dict(Trip.TRANSPORT_MODES).values()),
             'mode_counts': list(trips_qs.values('transport_mode').annotate(count=Count('id')).values_list('count', flat=True)),
         })
@@ -278,5 +281,76 @@ def admin_change_password(request):
 def employer_approval(request, employer_id):
     """Placeholder function for employer approval view"""
     return redirect('admin_pending_employers')
+
+@login_required
+@user_passes_test(is_super_admin)
+def generate_report(request):
+    """Generate a report based on the specified parameters."""
+    report_type = request.GET.get('type', 'all')
+    date_range = request.GET.get('range', 'all')
+    
+    # Get base queryset
+    trips = Trip.objects.all().select_related('employee', 'employee__user').order_by('-trip_date')
+    
+    # Apply date filters
+    if date_range == 'week':
+        trips = trips.filter(trip_date__gte=timezone.now().date() - timezone.timedelta(days=7))
+    elif date_range == 'month':
+        trips = trips.filter(trip_date__gte=timezone.now().date() - timezone.timedelta(days=30))
+    elif date_range == 'quarter':
+        trips = trips.filter(trip_date__gte=timezone.now().date() - timezone.timedelta(days=90))
+    
+    # Format trip data
+    trip_data = []
+    for trip in trips[:50]:  # Limit to 50 trips
+        trip_data.append({
+            'id': trip.id,
+            'employee': trip.employee.user.get_full_name(),
+            'date': trip.trip_date.strftime('%Y-%m-%d'),
+            'transport_mode': trip.get_transport_mode_display(),
+            'distance': trip.distance_km,
+            'carbon_saved': trip.carbon_savings,
+            'credits': trip.credits_earned,
+            'status': trip.verification_status
+        })
+    
+    return JsonResponse({'trips': trip_data})
+
+@login_required
+@user_passes_test(is_super_admin)
+def export_report(request):
+    """Export trip data to CSV."""
+    # Get base queryset
+    trips = Trip.objects.all().select_related('employee', 'employee__user').order_by('-trip_date')
+    
+    # Apply date filter if provided
+    start_date = request.GET.get('start_date')
+    if start_date:
+        trips = trips.filter(trip_date__gte=start_date)
+    
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="trips_report.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'Trip ID', 'Employee', 'Date', 'Transport Mode',
+        'Distance (km)', 'Carbon Saved (kg)', 'Credits Earned',
+        'Status'
+    ])
+    
+    for trip in trips:
+        writer.writerow([
+            trip.id,
+            trip.employee.user.get_full_name(),
+            trip.trip_date.strftime('%Y-%m-%d'),
+            trip.get_transport_mode_display(),
+            trip.distance_km,
+            trip.carbon_savings,
+            trip.credits_earned,
+            trip.verification_status
+        ])
+    
+    return response
 
 # Add additional admin views as needed 

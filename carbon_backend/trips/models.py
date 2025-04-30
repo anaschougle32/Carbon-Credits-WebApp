@@ -8,12 +8,9 @@ class Trip(models.Model):
     """Model for tracking employee trips."""
     
     TRANSPORT_MODES = (
-        ('car', 'Car (Single Occupancy)'),
-        ('carpool', 'Carpool'),
         ('public_transport', 'Public Transport'),
-        ('bicycle', 'Bicycle'),
-        ('walking', 'Walking'),
-        ('work_from_home', 'Work From Home'),
+        ('carpool', 'Carpool'),
+        ('personal_vehicle', 'Personal Vehicle'),
     )
     
     VERIFICATION_STATUS = (
@@ -41,8 +38,6 @@ class Trip(models.Model):
         null=True
     )
     trip_date = models.DateField(default=timezone.now)
-    start_time = models.TimeField(default=timezone.now)
-    end_time = models.TimeField(default=timezone.now)
     transport_mode = models.CharField(
         max_length=20, 
         choices=TRANSPORT_MODES
@@ -67,18 +62,12 @@ class Trip(models.Model):
     )
     notes = models.TextField(blank=True)
     verification_status = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=VERIFICATION_STATUS,
         default='pending'
     )
-    verified_by = models.ForeignKey(
-        CustomUser,
-        on_delete=models.SET_NULL,
-        related_name='verified_trips',
-        null=True,
-        blank=True
-    )
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return f"{self.employee.user.email}: {self.trip_date} ({self.transport_mode})"

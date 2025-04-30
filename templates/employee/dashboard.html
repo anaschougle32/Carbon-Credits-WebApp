@@ -82,27 +82,27 @@
                         {% for trip in recent_trips %}
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ trip.start_time|date:"M d, Y" }}
+                                {{ trip.trip_date|date:"M d, Y" }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">{{ trip.start_location.name }} → {{ trip.end_location.name }}</div>
+                                <div class="text-sm text-gray-900">{{ trip.start_location.address }} → {{ trip.end_location.address }}</div>
                             </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {{ trip.distance_km|floatformat:1 }} km
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ trip.distance_km|floatformat:1 }} km
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                            {% if trip.verification_status == 'verified' %}bg-green-100 text-green-800
-                            {% elif trip.verification_status == 'pending' %}bg-yellow-100 text-yellow-800
-                            {% else %}bg-gray-100 text-gray-800{% endif %}">
-                            {{ trip.verification_status|title }}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if trip.verification_status == 'verified' %}bg-green-100 text-green-800
+                                    {% elif trip.verification_status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ trip.verification_status|title }}
                                 </span>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
-                        No trips recorded yet
+                            <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                No trips recorded yet
                             </td>
                         </tr>
                         {% endfor %}

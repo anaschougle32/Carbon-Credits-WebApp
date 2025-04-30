@@ -45,7 +45,7 @@ class EmployerRegistrationView(APIView):
     """View to register a new employer."""
     
     permission_classes = [permissions.AllowAny]
-    template_name = 'registration/employer_registration.html'
+    template_name = 'registration/register_employer.html'
     
     def get(self, request):
         """Handle GET request - display the registration form."""
@@ -74,6 +74,7 @@ class EmployerRegistrationView(APIView):
                     email=email,
                     password=password,
                     is_employer=True,
+                    is_staff=True,
                     is_active=True,
                     approved=True  # Automatically approve employer
                 )

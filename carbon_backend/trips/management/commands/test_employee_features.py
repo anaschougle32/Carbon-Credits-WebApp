@@ -107,7 +107,7 @@ class Command(BaseCommand):
         trip = Trip.objects.create(
             employee=self.employee_profile,
             start_location=self.home_location,
-            start_time=timezone.now(),
+            trip_date=timezone.now().date(),
             transport_mode='bicycle'
         )
         

@@ -298,7 +298,7 @@ class AdminDashboardView(APIView):
         limit = int(request.query_params.get('limit', 10))
         recent_trips = Trip.objects.select_related(
             'employee', 'employee__user', 'employee__employer'
-        ).order_by('-end_time')[:limit]
+        ).order_by('-trip_date')[:limit]
         
         trips_data = []
         for trip in recent_trips:
@@ -310,8 +310,7 @@ class AdminDashboardView(APIView):
                     'email': trip.employee.user.email,
                     'employer': trip.employee.employer.company_name if trip.employee.employer else None,
                 },
-                'start_time': trip.start_time,
-                'end_time': trip.end_time,
+                'trip_date': trip.trip_date,
                 'transport_mode': trip.transport_mode,
                 'transport_mode_display': trip.get_transport_mode_display(),
                 'distance': trip.distance_km,

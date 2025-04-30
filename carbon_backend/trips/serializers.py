@@ -24,7 +24,7 @@ class TripSerializer(serializers.ModelSerializer):
             'id', 'employee', 'employee_name', 
             'start_location', 'start_location_name',
             'end_location', 'end_location_name',
-            'start_time', 'end_time', 'transport_mode',
+            'trip_date', 'transport_mode',
             'distance_km', 'carbon_savings', 'credits_earned',
             'proof_image', 'verification_status', 'verified_by',
             'created_at', 'duration'
@@ -163,7 +163,7 @@ class CarbonCreditSerializer(serializers.ModelSerializer):
     def get_trip_date(self, obj):
         """Get the date of the source trip."""
         if obj.source_trip:
-            return obj.source_trip.start_time.date()
+            return obj.source_trip.trip_date
         return None
     
     def get_owner_name(self, obj):

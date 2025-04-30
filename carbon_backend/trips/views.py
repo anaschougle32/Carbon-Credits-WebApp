@@ -38,17 +38,17 @@ class TripListView(APIView):
         
         if user.is_super_admin or user.is_bank_admin:
             # Admins can see all trips
-            trips = Trip.objects.all().order_by('-start_time')
+            trips = Trip.objects.all().order_by('-trip_date')
         elif user.is_employer:
             # Employers can see their employees' trips
             employer_profile = user.employer_profile
             trips = Trip.objects.filter(
                 employee__employer=employer_profile
-            ).order_by('-start_time')
+            ).order_by('-trip_date')
         else:
             # Employees can see their own trips
             employee = EmployeeProfile.objects.get(user=user)
-            trips = Trip.objects.filter(employee=employee).order_by('-start_time')
+            trips = Trip.objects.filter(employee=employee).order_by('-trip_date')
             
         serializer = TripSerializer(trips, many=True)
         return Response(serializer.data)
@@ -98,7 +98,7 @@ class TripStartView(APIView):
             employee=employee,
             start_location=start_location,
             transport_mode=serializer.validated_data['transport_mode'],
-            start_time=timezone.now(),
+            trip_date=timezone.now().date(),
             verification_status='pending'
         )
         
