@@ -87,6 +87,20 @@
         font-weight: 500;
     }
 
+    .sidebar-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .sidebar-section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
+        padding-left: 0.5rem;
+    }
+
     .sidebar-footer {
         margin-top: auto;
         padding-top: 1.5rem;
@@ -143,6 +157,39 @@
         color: #6b7280;
     }
 
+    .quick-action {
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        transition: all 0.2s;
+    }
+
+    .quick-action:hover {
+        background-color: #f3f4f6;
+        transform: translateX(2px);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .quick-action-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #2563EB;
+    }
+
+    .quick-action-text {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #4b5563;
+    }
+
     @media (max-width: 1024px) {
         .employer-sidebar {
             transform: translateX(-100%);
@@ -175,46 +222,88 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
             </div>
-            <h2 class="text-xl font-bold text-gray-800">Employer Dashboard</h2>
+            <h2 class="text-xl font-bold text-gray-800">Employer Portal</h2>
         </div>
 
         <nav class="sidebar-nav">
-            <a href="{% url 'employer_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'employer_dashboard' %}active{% endif %}">
+            <a href="{% url 'employer:employer_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'employer_dashboard' %}active{% endif %}">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
                 <span>Dashboard</span>
             </a>
 
-            <a href="{% url 'employer_employees' %}" class="nav-item {% if request.resolver_match.url_name == 'employer_employees' %}active{% endif %}">
+            <a href="{% url 'employer:employees' %}" class="nav-item {% if request.resolver_match.url_name == 'employees' %}active{% endif %}">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
                 <span>Employees</span>
             </a>
 
-            <a href="{% url 'employer_trips' %}" class="nav-item {% if request.resolver_match.url_name == 'employer_trips' %}active{% endif %}">
+            <a href="{% url 'employer:pending_trips' %}" class="nav-item {% if request.resolver_match.url_name == 'pending_trips' %}active{% endif %}">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Trips</span>
+                <span>Pending Trips</span>
             </a>
 
-            <a href="{% url 'employer_reports' %}" class="nav-item {% if request.resolver_match.url_name == 'employer_reports' %}active{% endif %}">
+            <a href="{% url 'employer:locations' %}" class="nav-item {% if request.resolver_match.url_name == 'locations' %}active{% endif %}">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span>Reports</span>
+                <span>Locations</span>
             </a>
 
-            <a href="{% url 'employer_settings' %}" class="nav-item {% if request.resolver_match.url_name == 'employer_settings' %}active{% endif %}">
+            <a href="{% url 'employer:trading' %}" class="nav-item {% if request.resolver_match.url_name == 'trading' %}active{% endif %}">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Settings</span>
+                <span>Carbon Trading</span>
             </a>
         </nav>
+
+        <!-- Quick Actions Section -->
+        <div class="sidebar-section mt-6">
+            <h3 class="sidebar-section-title">Quick Actions</h3>
+            <div class="space-y-2">
+                <a href="{% url 'employer:pending_trips' %}" class="quick-action">
+                    <div class="quick-action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                    </div>
+                    <div class="quick-action-text">Approve Trips</div>
+                </a>
+                
+                <a href="{% url 'employer:locations' %}?action=add" class="quick-action">
+                    <div class="quick-action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="quick-action-text">Add Location</div>
+                </a>
+                
+                <a href="{% url 'employer:employees' %}?action=invite" class="quick-action">
+                    <div class="quick-action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                    </div>
+                    <div class="quick-action-text">Invite Employee</div>
+                </a>
+                
+                <a href="{% url 'employer:trading' %}" class="quick-action">
+                    <div class="quick-action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                    </div>
+                    <div class="quick-action-text">Trade Credits</div>
+                </a>
+            </div>
+        </div>
 
         <div class="sidebar-footer">
             <div class="user-profile">
@@ -223,10 +312,17 @@
                 </div>
                 <div class="user-info">
                     <div class="user-name">{{ request.user.get_full_name }}</div>
-                    <div class="user-role">{{ request.user.employer.name }}</div>
+                    <div class="user-role">{{ request.user.employer_profile.company_name|default:"Employer" }}</div>
                 </div>
             </div>
-            <a href="{% url 'logout' %}" class="nav-item mt-4 text-red-600 hover:bg-red-50">
+            <a href="{% url 'employer:profile' %}" class="nav-item mt-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>Profile</span>
+            </a>
+            <a href="{% url 'logout' %}" class="nav-item mt-2 text-red-600 hover:bg-red-50">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
@@ -260,17 +356,14 @@
             </svg>
         `;
         document.body.appendChild(toggleButton);
-
+        
         toggleButton.addEventListener('click', function() {
             sidebar.classList.toggle('open');
         });
-
+        
         // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function(event) {
-            if (window.innerWidth < 1024 && 
-                !sidebar.contains(event.target) && 
-                !toggleButton.contains(event.target) && 
-                sidebar.classList.contains('open')) {
+            if (!sidebar.contains(event.target) && event.target !== toggleButton) {
                 sidebar.classList.remove('open');
             }
         });
