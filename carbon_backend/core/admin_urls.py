@@ -18,13 +18,13 @@ urlpatterns = [
     
     # Reports
     path('reports/', admin_views.reports, name='admin_reports'),
+    path('reports/summary/', admin_views.reports, {'type': 'summary'}, name='admin_reports_summary'),
+    path('reports/carbon-credits/', admin_views.reports, {'type': 'credits'}, name='admin_reports_carbon_credits'),
+    path('reports/trips/', admin_views.reports, {'type': 'trips'}, name='admin_reports_trips'),
+    path('reports/users/', admin_views.reports, {'type': 'users'}, name='admin_reports_users'),
+    path('reports/custom/', admin_views.reports, {'type': 'custom'}, name='admin_reports_custom'),
     path('reports/generate/', admin_views.generate_report, name='admin_generate_report'),
     path('reports/export/', admin_views.export_reports, name='admin_export_reports'),
-    
-    # Profile
-    path('profile/', admin_views.admin_profile, name='admin_profile'),
-    path('profile/update/', admin_views.admin_update_profile, name='admin_update_profile'),
-    path('profile/change-password/', admin_views.admin_change_password, name='admin_change_password'),
     
     # Dashboard components that load dynamically
     path('recent-trips/', admin_views.dashboard_recent_trips, name='admin_dashboard_recent_trips'),

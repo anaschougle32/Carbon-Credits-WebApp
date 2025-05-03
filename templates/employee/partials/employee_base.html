@@ -139,19 +139,6 @@
                 Logout
             </a>
         </nav>
-
-        <!-- User Profile -->
-        <div class="user-profile mt-auto">
-            <div class="flex items-center">
-                <div class="user-initials">
-                    {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
-                </div>
-                <div>
-                    <div class="text-sm font-medium text-gray-900">{{ request.user.get_full_name }}</div>
-                    <div class="text-xs text-gray-500">Employee</div>
-                </div>
-            </div>
-        </div>
     </aside>
 
     <!-- Main Content -->

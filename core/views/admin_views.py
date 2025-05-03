@@ -11,6 +11,8 @@ import csv
 import io
 from django.urls import reverse
 from decimal import Decimal
+import json
+from datetime import timedelta
 
 # Import marketplace models if needed
 from marketplace.models import MarketOffer, MarketplaceTransaction
@@ -55,6 +57,55 @@ def dashboard(request):
         'employee', 'employee__user', 'employee__employer', 'start_location', 'end_location'
     ).order_by('-trip_date')[:10]
     
+    # Get data for user growth chart (last 6 months)
+    now = timezone.now()
+    user_growth_data = []
+    user_growth_labels = []
+    
+    for i in range(5, -1, -1):
+        # Calculate month date
+        current_date = now - timezone.timedelta(days=30 * i)
+        month_start = current_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        # If it's the current month, use current date as end date
+        if i == 0:
+            month_end = now
+        else:
+            # Otherwise, get the last day of the month
+            if month_start.month == 12:
+                next_month = month_start.replace(year=month_start.year + 1, month=1)
+            else:
+                next_month = month_start.replace(month=month_start.month + 1)
+            month_end = next_month - timezone.timedelta(seconds=1)
+        
+        # Get users joined this month
+        month_users = CustomUser.objects.filter(
+            date_joined__gte=month_start,
+            date_joined__lte=month_end
+        ).count()
+        
+        # Add to data array
+        user_growth_data.append(month_users)
+        user_growth_labels.append(month_start.strftime('%b %Y'))
+    
+    # Get transport mode distribution data
+    transport_modes = Trip.objects.values('transport_mode').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    transport_mode_labels = []
+    transport_mode_data = []
+    
+    # Handle case of no data
+    if not transport_modes:
+        transport_mode_labels = ['Public Transport', 'Carpool', 'Personal Vehicle']
+        transport_mode_data = [5, 3, 2]  # Sample data
+    else:
+        mode_names = dict(Trip.TRANSPORT_MODES)
+        for mode in transport_modes:
+            transport_mode_labels.append(mode_names.get(mode['transport_mode'], 'Unknown'))
+            transport_mode_data.append(mode['count'])
+    
     context = {
         'total_users': total_users,
         'employers': employers,
@@ -72,6 +123,10 @@ def dashboard(request):
         'total_credits': total_credits,
         'pending_employers': pending_employers,
         'recent_trips': recent_trips,
+        'user_growth_data': json.dumps(user_growth_data),
+        'user_growth_labels': json.dumps(user_growth_labels),
+        'transport_mode_data': json.dumps(transport_mode_data),
+        'transport_mode_labels': json.dumps(transport_mode_labels)
     }
     
     return render(request, 'admin/dashboard.html', context)
@@ -352,5 +407,118 @@ def export_report(request):
         ])
     
     return response
+
+@login_required
+@user_passes_test(is_super_admin)
+def analytics(request):
+    """
+    Admin analytics view - shows comprehensive charts and statistics
+    """
+    # Date range for data (default: last 30 days)
+    days = int(request.GET.get('days', 30))
+    start_date = timezone.now() - timedelta(days=days)
+    
+    # Get total carbon credits issued this month
+    month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    total_carbon_credits = CarbonCredit.objects.filter(
+        created_at__gte=month_start
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # Get average trip distance
+    avg_trip_distance = Trip.objects.aggregate(avg_distance=Sum('distance') / Count('id'))['avg_distance'] or 0
+    
+    # Get number of active employers
+    active_employers = EmployerProfile.objects.filter(approved=True).count()
+    
+    # Get total carbon reduction
+    carbon_reduction = Trip.objects.aggregate(Sum('carbon_savings'))['carbon_savings__sum'] or 0
+    
+    # Get total trips
+    total_trips = Trip.objects.count()
+    
+    # Calculate change in trips compared to previous period
+    prev_period_start = start_date - timedelta(days=days)
+    current_period_trips = Trip.objects.filter(trip_date__gte=start_date).count()
+    prev_period_trips = Trip.objects.filter(trip_date__gte=prev_period_start, trip_date__lt=start_date).count()
+    trip_change = round(((current_period_trips - prev_period_trips) / max(prev_period_trips, 1)) * 100)
+    
+    # Get active users
+    active_users = CustomUser.objects.filter(last_login__gte=start_date).count()
+    prev_period_active = CustomUser.objects.filter(last_login__gte=prev_period_start, last_login__lt=start_date).count()
+    user_change = round(((active_users - prev_period_active) / max(prev_period_active, 1)) * 100)
+    
+    # Calculate average credits per trip
+    avg_credits_per_trip = round((total_carbon_credits / max(current_period_trips, 1)), 2)
+    prev_avg_credits = CarbonCredit.objects.filter(
+        created_at__gte=prev_period_start, created_at__lt=start_date
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    prev_avg_credits_per_trip = round((prev_avg_credits / max(prev_period_trips, 1)), 2)
+    credits_change = round(((avg_credits_per_trip - prev_avg_credits_per_trip) / max(prev_avg_credits_per_trip, 1)) * 100)
+    
+    # Get data for credits over time chart
+    credits_by_day = (
+        CarbonCredit.objects
+        .filter(created_at__gte=start_date)
+        .extra(select={'day': "DATE(created_at)"})
+        .values('day')
+        .annotate(total=Sum('amount'))
+        .order_by('day')
+    )
+    
+    # If no data, create sample data
+    dates = []
+    credits_data = []
+    
+    if credits_by_day:
+        for entry in credits_by_day:
+            dates.append(entry['day'].strftime('%Y-%m-%d'))
+            credits_data.append(float(entry['total']))
+    else:
+        # Generate sample data
+        for i in range(days):
+            current_date = (start_date + timedelta(days=i)).strftime('%Y-%m-%d')
+            dates.append(current_date)
+            credits_data.append(round(float(i % 5) + 0.5 + (i % 3), 2))
+    
+    # Get data for transport mode distribution chart
+    transport_modes = (
+        Trip.objects
+        .filter(trip_date__gte=start_date)
+        .values('transport_mode')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    
+    # If no transport data, create sample data
+    transport_mode_labels = []
+    transport_mode_data = []
+    
+    if transport_modes:
+        mode_dict = dict(Trip.TRANSPORT_MODES)
+        for mode in transport_modes:
+            transport_mode_labels.append(mode_dict.get(mode['transport_mode'], mode['transport_mode']))
+            transport_mode_data.append(mode['count'])
+    else:
+        transport_mode_labels = ['Bicycle', 'Public Transport', 'Walking', 'Work From Home', 'Carpool']
+        transport_mode_data = [12, 8, 6, 5, 3]
+    
+    context = {
+        'total_carbon_credits': total_carbon_credits,
+        'avg_trip_distance': avg_trip_distance,
+        'active_employers': active_employers,
+        'carbon_reduction': carbon_reduction,
+        'total_trips': total_trips,
+        'trip_change': trip_change,
+        'active_users': active_users,
+        'user_change': user_change,
+        'avg_credits_per_trip': avg_credits_per_trip,
+        'credits_change': credits_change,
+        'dates': json.dumps(dates),
+        'credits_data': json.dumps(credits_data),
+        'transport_labels': json.dumps(transport_mode_labels),
+        'transport_data': json.dumps(transport_mode_data),
+    }
+    
+    return render(request, 'admin/analytics.html', context)
 
 # Add additional admin views as needed 

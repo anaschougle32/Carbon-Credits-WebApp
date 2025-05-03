@@ -218,7 +218,7 @@
         const creditsChart = new Chart(creditsCtx, {
             type: 'line',
             data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                labels: {{ monthly_labels|safe }},
                 datasets: [{
                     label: 'Credits Earned',
                     data: {{ monthly_credits|safe }},
@@ -250,32 +250,41 @@
         const transportChart = new Chart(transportCtx, {
             type: 'doughnut',
             data: {
-                labels: {{ transport_modes_labels|safe }},
+                labels: {{ transport_mode_labels|safe }},
                 datasets: [{
-                    data: {{ transport_modes_values|safe }},
+                    data: {{ transport_mode_data|safe }},
                     backgroundColor: [
-                        'rgba(59, 130, 246, 0.7)',  // Blue
-                        'rgba(16, 185, 129, 0.7)',  // Green
-                        'rgba(249, 115, 22, 0.7)',  // Orange
-                        'rgba(139, 92, 246, 0.7)',  // Purple
-                        'rgba(236, 72, 153, 0.7)'   // Pink
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(75, 85, 99, 0.8)'
                     ],
-                    borderWidth: 0
+                    borderWidth: 1
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom',
+                        position: 'right',
                         labels: {
-                            boxWidth: 12,
+                            boxWidth: 15,
                             padding: 15
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((context.raw / total) * 100);
+                                return context.label + ': ' + context.raw + ' (' + percentage + '%)';
+                            }
                         }
                     }
                 },
-                cutout: '70%'
+                responsive: true,
+                maintainAspectRatio: false
             }
         });
         

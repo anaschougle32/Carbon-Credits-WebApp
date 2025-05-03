@@ -12,9 +12,6 @@ from core.views.bank_views import (
     BankReportsView,
     export_report,
     generate_report,
-    profile,
-    update_profile,
-    change_password,
     transactions,
     approvals,
     approve_transaction,
@@ -39,8 +36,5 @@ urlpatterns = [
     path('reports/', BankReportsView.as_view(), name='bank_reports'),
     path('reports/generate/', generate_report, name='generate_report'),
     path('reports/export/', export_report, name='export_report'),
-    path('profile/', profile, name='profile'),
-    path('profile/update/', update_profile, name='update_profile'),
-    path('profile/change-password/', change_password, name='change_password'),
     path('transactions/', transactions, name='transactions'),
 ] 

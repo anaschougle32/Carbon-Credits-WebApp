@@ -522,6 +522,121 @@ def trip_approval(request, trip_id):
 
 @login_required
 @user_passes_test(lambda u: u.is_employer)
+def approve_all_trips(request):
+    """
+    View for approving all pending trips at once.
+    """
+    if request.method != 'POST':
+        return redirect('employer:pending_trips')
+        
+    employer_profile = request.user.employer_profile
+    employee_ids = employer_profile.employees.values_list('id', flat=True)
+    
+    pending_trips = Trip.objects.filter(
+        employee__in=employee_ids,
+        verification_status='pending'
+    )
+    
+    # Calculate total credits needed
+    total_credits_needed = pending_trips.aggregate(total=Sum('credits_earned'))['total'] or 0
+    
+    # Check if employer has enough credits
+    employer_credits = CarbonCredit.objects.filter(
+        owner_type='employer',
+        owner_id=employer_profile.id,
+        status='active'
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    if employer_credits < total_credits_needed:
+        messages.error(
+            request, 
+            f"Not enough credits in your wallet. You need {total_credits_needed} credits but only have {employer_credits}."
+        )
+        return redirect('employer:pending_trips')
+    
+    # Process each trip
+    approved_count = 0
+    for trip in pending_trips:
+        credits_to_award = trip.credits_earned or 0
+        
+        # Update trip status
+        trip.verification_status = 'verified'
+        trip.verified_by = request.user
+        trip.save()
+        
+        if credits_to_award > 0:
+            # Find any pending credits for this trip and activate them
+            pending_credits = CarbonCredit.objects.filter(
+                source_trip=trip,
+                owner_type='employee',
+                owner_id=trip.employee.id,
+                status='pending'
+            )
+            
+            if pending_credits.exists():
+                for credit in pending_credits:
+                    credit.status = 'active'
+                    credit.save()
+            else:
+                # Create new credits for employee if none exist
+                CarbonCredit.objects.create(
+                    amount=credits_to_award,
+                    source_trip=trip,
+                    owner_type='employee',
+                    owner_id=trip.employee.id,
+                    status='active',
+                    expiry_date=timezone.now() + timezone.timedelta(days=365)  # 1 year validity
+                )
+            
+            # Deduct credits from employer's wallet
+            remaining_to_deduct = credits_to_award
+            employer_active_credits = CarbonCredit.objects.filter(
+                owner_type='employer',
+                owner_id=employer_profile.id,
+                status='active'
+            ).order_by('timestamp')  # Use oldest credits first
+            
+            for credit in employer_active_credits:
+                if remaining_to_deduct <= 0:
+                    break
+                    
+                if credit.amount <= remaining_to_deduct:
+                    # Use the entire credit
+                    credit.status = 'used'
+                    credit.save()
+                    remaining_to_deduct -= credit.amount
+                else:
+                    # Split the credit
+                    new_amount = credit.amount - remaining_to_deduct
+                    
+                    # Update the original credit
+                    credit.amount = new_amount
+                    credit.save()
+                    
+                    # Create a record of the used portion
+                    CarbonCredit.objects.create(
+                        amount=remaining_to_deduct,
+                        source_trip=trip,
+                        owner_type='employer',
+                        owner_id=employer_profile.id,
+                        timestamp=timezone.now(),
+                        status='used',
+                        expiry_date=credit.expiry_date
+                    )
+                    
+                    remaining_to_deduct = 0
+        
+        approved_count += 1
+    
+    if approved_count > 0:
+        messages.success(request, f"Successfully approved {approved_count} trips.")
+    else:
+        messages.info(request, "No pending trips found to approve.")
+    
+    return redirect('employer:pending_trips')
+
+@login_required
+@user_passes_test(lambda u: u.is_employer)
 def create_transaction(request):
     """
     Handle the creation of a new transaction when a user buys credits.

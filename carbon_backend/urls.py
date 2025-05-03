@@ -52,29 +52,6 @@ def dashboard_redirect(request):
         messages.error(request, f"Error accessing dashboard: {str(e)}")
         return redirect('login')
 
-# Profile redirect function
-def profile_redirect(request):
-    if not request.user.is_authenticated:
-        messages.info(request, "Please log in to access your profile.")
-        return redirect('login')
-        
-    try:
-        if request.user.is_super_admin:
-            return redirect('admin_profile')
-        elif request.user.is_bank_admin:
-            return redirect('bank:profile')
-        elif request.user.is_employer:
-            return redirect('employer:profile')
-        elif request.user.is_employee:
-            return redirect('employee_profile')
-        else:
-            # Fallback to login if no specific role is set
-            messages.warning(request, "No specific role detected.")
-            return redirect('login')
-    except Exception as e:
-        messages.error(request, f"Error accessing profile: {str(e)}")
-        return redirect('login')
-
 # Custom logout view function
 def logout_view(request):
     logout(request)
@@ -90,7 +67,6 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='auth/login.html'), name='login'),
     path('logout/', logout_view, name='logout'),
     path('register/', RegisterView.as_view(), name='register'),
-    path('profile/', profile_redirect, name='profile'),
     path('password_reset/', auth_views.PasswordResetView.as_view(template_name='auth/password_reset.html'), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='auth/password_reset_done.html'), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='auth/password_reset_confirm.html'), name='password_reset_confirm'),
