@@ -60,7 +60,49 @@ class EmployerRegistrationView(APIView):
     
     def post(self, request):
         """Handle POST request - process the registration form."""
-        serializer = EmployerRegistrationSerializer(data=request.data)
+        # For multi-step form with HTML submission
+        if request.content_type == 'application/x-www-form-urlencoded':
+            # Prepare data in the format expected by the serializer
+            data = {
+                'email': request.POST.get('email'),
+                'password': request.POST.get('password1'),
+                'confirm_password': request.POST.get('password2'),
+                'company_name': request.POST.get('company_name'),
+            }
+            
+            # Get additional user data from form
+            first_name = request.POST.get('first_name')
+            last_name = request.POST.get('last_name')
+            phone = request.POST.get('phone')
+            position = request.POST.get('position')
+            
+            # If any required field is missing, add a message and return the form
+            if not all([data['email'], data['password'], data['confirm_password'], data['company_name']]):
+                messages.error(request, "Please fill in all required fields.")
+                serializer = EmployerRegistrationSerializer()
+                serializer._errors = {'non_field_errors': ['Please fill in all required fields.']}
+                return render(request, self.template_name, {
+                    'serializer': serializer,
+                    'page_title': 'Employer Registration',
+                    'page_description': 'Register your company to manage employee carbon credits'
+                })
+            
+            # Check if passwords match
+            if data['password'] != data['confirm_password']:
+                messages.error(request, "Passwords do not match.")
+                serializer = EmployerRegistrationSerializer()
+                serializer._errors = {'non_field_errors': ['Passwords do not match.']}
+                return render(request, self.template_name, {
+                    'serializer': serializer,
+                    'page_title': 'Employer Registration',
+                    'page_description': 'Register your company to manage employee carbon credits'
+                })
+                
+            serializer = EmployerRegistrationSerializer(data=data)
+        else:
+            # For API requests with JSON data
+            serializer = EmployerRegistrationSerializer(data=request.data)
+            
         if serializer.is_valid():
             with transaction.atomic():
                 # Get validated data
@@ -73,6 +115,8 @@ class EmployerRegistrationView(APIView):
                     username=email,  # Use email as username
                     email=email,
                     password=password,
+                    first_name=first_name if 'first_name' in locals() else "",
+                    last_name=last_name if 'last_name' in locals() else "",
                     is_employer=True,
                     is_staff=True,
                     is_active=True,
@@ -83,6 +127,8 @@ class EmployerRegistrationView(APIView):
                 employer_profile = EmployerProfile.objects.create(
                     user=user,
                     company_name=company_name,
+                    phone=phone if 'phone' in locals() else "",
+                    position=position if 'position' in locals() else "",
                     approved=True  # Automatically approve employer profile
                 )
                 
@@ -155,7 +201,7 @@ class EmployeeRegistrationView(APIView):
                     user.first_name = first_name
                     user.last_name = last_name
                     user.is_employee = True
-                    user.approved = False
+                    user.approved = True
                     user.save()
                     
                     # If they provided a new password, update it
@@ -172,24 +218,24 @@ class EmployeeRegistrationView(APIView):
                         last_name=last_name,
                         is_employee=True,
                         is_active=True,  # User can login but cannot access restricted areas
-                        approved=False  # User is not fully approved
+                        approved=True  # User is automatically approved
                     )
                 
                 # Check if employee profile already exists
                 employee_profile = EmployeeProfile.objects.filter(user=user).first()
                 if not employee_profile:
-                    # Create employee profile (pending approval)
+                    # Create employee profile (automatically approved)
                     employee_profile = EmployeeProfile.objects.create(
                         user=user,
                         employer=employer,
                         employee_id=employee_id,
-                        approved=False  # Needs employer approval
+                        approved=True  # Employee is automatically approved
                     )
                 else:
                     # Update existing employee profile
                     employee_profile.employer = employer
                     employee_profile.employee_id = employee_id
-                    employee_profile.approved = False
+                    employee_profile.approved = True
                     employee_profile.save()
                 
                 # Create home location
@@ -203,10 +249,10 @@ class EmployeeRegistrationView(APIView):
                     is_primary=True
                 )
                 
-                # Set registration type and redirect to pending approval page
-                request.session['registration_type'] = 'employee'
-                messages.success(request, "Registration successful! Your account is pending approval from your employer.")
-                return redirect('pending_approval')
+                # Log the user in and redirect to dashboard
+                login(request, user)
+                messages.success(request, "Registration successful! Welcome to the Carbon Credits platform.")
+                return redirect('employee:employee_dashboard')
         
         return render(request, 'auth/register_employee.html', {'form': form})
 

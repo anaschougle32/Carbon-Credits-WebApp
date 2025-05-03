@@ -77,6 +77,8 @@ class EmployerProfile(models.Model):
         related_name='employer_profile'
     )
     company_name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    position = models.CharField(max_length=100, blank=True, null=True)
     approved = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
     initial_credits_allocated = models.BooleanField(default=False)

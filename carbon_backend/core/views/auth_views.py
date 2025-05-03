@@ -152,7 +152,7 @@ def employer_register(request):
                 last_name=last_name,
                 is_employer=True,
                 is_active=True,
-                approved=False  # Needs admin approval
+                approved=True  # Automatically approve
             )
             
             # Format full address
@@ -169,7 +169,7 @@ def employer_register(request):
                 phone=phone,
                 website=website,
                 address=full_address,
-                approved=False  # Needs admin approval
+                approved=True  # Automatically approve
             )
             
             # Create primary office location without coordinates
@@ -182,9 +182,10 @@ def employer_register(request):
                 is_primary=True
             )
             
-            messages.success(request, "Registration successful! Your account is pending approval from the system administrator.")
-            request.session['registration_type'] = 'employer'
-            return redirect('pending_approval')
+            # Log the user in
+            login(request, user)
+            messages.success(request, "Registration successful! You are now logged in.")
+            return redirect('employer:employer_dashboard')
             
         except Exception as e:
             messages.error(request, f"An error occurred during registration: {str(e)}")
