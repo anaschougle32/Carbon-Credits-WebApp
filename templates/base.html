@@ -278,35 +278,7 @@
 
     {% block show_footer %}
     {% if not user.is_authenticated %}
-    <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200">
-        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">About</h3>
-                    <p class="text-gray-600">Track and reduce your carbon footprint while earning rewards for sustainable commuting.</p>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Links</h3>
-                    <ul class="space-y-2">
-                        <li><a href="{% url 'home' %}" class="text-gray-600 hover:text-primary">Home</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-primary">How It Works</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-primary">FAQ</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Contact</h3>
-                    <ul class="space-y-2">
-                        <li class="text-gray-600">support@carboncredits.com</li>
-                        <li class="text-gray-600">+1 (555) 123-4567</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="border-t border-gray-200 mt-8 pt-8 text-center text-gray-600">
-                <p>&copy; 2024 Carbon Credits. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    
     {% endif %}
     {% endblock %}
 

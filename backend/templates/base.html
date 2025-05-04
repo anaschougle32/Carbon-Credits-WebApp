@@ -93,6 +93,44 @@
                     div.remove();
                 }
             });
+            
+            // Update copyright year from 2024 to 2025
+            const updateCopyrightYear = function() {
+                // Find all text nodes in the document
+                const walker = document.createTreeWalker(
+                    document.body,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                );
+                
+                let node;
+                while (node = walker.nextNode()) {
+                    // Check if the text contains copyright with 2024
+                    if (node.nodeValue.includes('© 2024') || 
+                        node.nodeValue.includes('©2024') || 
+                        node.nodeValue.includes('Copyright 2024')) {
+                        // Replace 2024 with 2025
+                        node.nodeValue = node.nodeValue.replace(/2024/g, '2025');
+                    }
+                }
+                
+                // Also look for elements with copyright text
+                document.querySelectorAll('*').forEach(el => {
+                    if (el.innerHTML && (
+                        el.innerHTML.includes('© 2024') || 
+                        el.innerHTML.includes('©2024') || 
+                        el.innerHTML.includes('Copyright 2024'))) {
+                        el.innerHTML = el.innerHTML.replace(/2024/g, '2025');
+                    }
+                });
+            };
+            
+            // Run once on page load
+            updateCopyrightYear();
+            
+            // Also run periodically in case content is loaded dynamically
+            setInterval(updateCopyrightYear, 1000);
         });
     </script>
 </body>
