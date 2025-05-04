@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}Carbon Credits Platform{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -27,13 +27,27 @@
             }
         }
     </script>
+    <style>
+        @media (max-width: 640px) {
+            .mobile-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
+        
+        /* Hide any footer that might be included from elsewhere */
+        footer, .footer, [id*="footer"], [class*="footer"], 
+        [role="contentinfo"], [id="bottom"], [class*="bottom-nav"] {
+            display: none !important;
+        }
+    </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-gray-50 min-h-screen">
     {% if messages %}
     <div class="fixed top-0 right-0 m-4 z-50">
         {% for message in messages %}
-        <div class="bg-white shadow-lg rounded-lg p-4 mb-4 {% if message.tags %}{{ message.tags }}{% endif %}">
+        <div class="bg-white shadow-lg rounded-lg p-4 mb-4 max-w-xs sm:max-w-sm md:max-w-md {% if message.tags %}{{ message.tags }}{% endif %}">
             {{ message }}
         </div>
         {% endfor %}
@@ -43,5 +57,43 @@
     {% block content %}{% endblock %}
 
     {% block extra_body %}{% endblock %}
+    
+    <script>
+        // Function to remove footer elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Target common footer elements
+            const footerSelectors = [
+                'footer', '.footer', '[id*="footer"]', '[class*="footer"]',
+                '[role="contentinfo"]', '#bottom', '.bottom-nav',
+                // Target specific elements from the screenshot
+                'div:contains("About")', 'div:contains("Quick Links")', 'div:contains("Contact")',
+                'div:contains("support@carboncredits.com")', 'div:contains("©")'
+            ];
+            
+            // Remove elements that match any of the selectors
+            footerSelectors.forEach(selector => {
+                try {
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(el => {
+                        if (el) el.remove();
+                    });
+                } catch(e) {
+                    // Ignore errors for unsupported selectors
+                }
+            });
+            
+            // Look for sections at the bottom of the page that might be footers
+            const allDivs = document.querySelectorAll('div');
+            allDivs.forEach(div => {
+                // If the div contains "About", "Quick Links", or "Contact" and is near the bottom
+                if ((div.textContent.includes('About') || 
+                     div.textContent.includes('Quick Links') || 
+                     div.textContent.includes('Contact')) &&
+                    div.getBoundingClientRect().bottom > (window.innerHeight * 0.7)) {
+                    div.remove();
+                }
+            });
+        });
+    </script>
 </body>
 </html> 
